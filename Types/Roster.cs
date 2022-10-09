@@ -55,7 +55,7 @@ namespace MapAssist.Types
                 return false;
             }
 
-            using (var processContext = GameManager.GetProcessContext())
+            using (ProcessContext processContext = GameManager.GetProcessContext())
             {
                 while (true)
                 {
@@ -87,10 +87,10 @@ namespace MapAssist.Types
 
         public Roster Update()
         {
-            using (var processContext = GameManager.GetProcessContext())
+            using (ProcessContext processContext = GameManager.GetProcessContext())
             {
-                var firstMember = processContext.Read<IntPtr>(_pFirst);
-                var entry = GetNewEntry(firstMember);
+                IntPtr firstMember = processContext.Read<IntPtr>(_pFirst);
+                RosterEntry entry = GetNewEntry(firstMember);
                 _list.Add(entry);
                 _entriesByUnitId.Add(entry.UnitId, entry);
                 while (entry.pNext != IntPtr.Zero)
@@ -105,11 +105,11 @@ namespace MapAssist.Types
 
         private RosterEntry GetNewEntry(IntPtr pAddress)
         {
-            using (var processContext = GameManager.GetProcessContext())
+            using (ProcessContext processContext = GameManager.GetProcessContext())
             {
-                var member = processContext.Read<RosterMember>(pAddress);
-                var hostilePtr = processContext.Read<IntPtr>(member.pHostileInfo);
-                var hostileInfo = processContext.Read<HostileInfo>(hostilePtr);
+                RosterMember member = processContext.Read<RosterMember>(pAddress);
+                IntPtr hostilePtr = processContext.Read<IntPtr>(member.pHostileInfo);
+                HostileInfo hostileInfo = processContext.Read<HostileInfo>(hostilePtr);
                 var entry = new RosterEntry
                 {
                     Name = Encoding.UTF8.GetString(member.Name).TrimEnd((char)0),

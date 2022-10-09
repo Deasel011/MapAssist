@@ -21,7 +21,7 @@ namespace MapAssist.Types
         {
             if (base.Update() == UpdateResult.Updated)
             {
-                using (var processContext = GameManager.GetProcessContext())
+                using (ProcessContext processContext = GameManager.GetProcessContext())
                 {
                     MonsterData = processContext.Read<MonsterData>(Struct.pUnitData);
                     MonsterStats = processContext.Read<MonStats>(MonsterData.pMonStats);
@@ -101,7 +101,7 @@ namespace MapAssist.Types
                     MonsterTypeFlags.Unique
                 };
 
-                foreach (var monType in monsterTypes)
+                foreach (MonsterTypeFlags monType in monsterTypes)
                 {
                     if ((MonsterData.MonsterType & monType) == monType)
                     {

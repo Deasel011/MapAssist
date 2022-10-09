@@ -51,7 +51,7 @@ namespace MapAssist.Types
                 return "Shrine";
             }
 
-            var lang = MapAssistConfiguration.Loaded.LanguageCode;
+            Locale lang = MapAssistConfiguration.Loaded.LanguageCode;
             var prop = localItem.GetType().GetProperty(lang.ToString()).GetValue(localItem, null);
             var label = prop.ToString();
 
@@ -76,7 +76,7 @@ namespace MapAssist.Types
                 return itemCode;
             }
 
-            var lang = MapAssistConfiguration.Loaded.LanguageCode;
+            Locale lang = MapAssistConfiguration.Loaded.LanguageCode;
             var prop = localItem.GetType().GetProperty(lang.ToString()).GetValue(localItem, null);
             return prop.ToString();
         }

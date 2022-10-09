@@ -38,7 +38,7 @@ namespace MapAssist.Files
             var YamlString = fileManager.ReadFile();
             CheckDuplicateKeys(YamlString);
 
-            var configuration = deserializer.Deserialize<T>(YamlString);
+            T configuration = deserializer.Deserialize<T>(YamlString);
             return configuration;
         }
 
@@ -51,7 +51,7 @@ namespace MapAssist.Files
 
                 var text = textRaw.Substring(0, textRaw.Length - 1);
 
-                var item = Items.ParseFromString(text);
+                Item? item = Items.ParseFromString(text);
                 if (item == null) continue;
 
                 if (!seen.Contains((Item)item))
@@ -92,8 +92,8 @@ namespace MapAssist.Files
 
             var yamlOverride = fileManagerOverride.ReadFile();
 
-            var primaryConfig = deserializer.Deserialize<Dictionary<object, object>>(yamlPrimary);
-            var overrideConfig = deserializer.Deserialize<Dictionary<object, object>>(yamlOverride);
+            Dictionary<object, object> primaryConfig = deserializer.Deserialize<Dictionary<object, object>>(yamlPrimary);
+            Dictionary<object, object> overrideConfig = deserializer.Deserialize<Dictionary<object, object>>(yamlOverride);
 
             // Have to check here for a null customized config - either a blank or fully commented out yaml file will result in a null dict
             // from the deserializer.
@@ -102,15 +102,15 @@ namespace MapAssist.Files
                 Merge(primaryConfig, overrideConfig);
             }
 
-            var serializer = new SerializerBuilder().Build();
+            ISerializer serializer = new SerializerBuilder().Build();
             var yaml = serializer.Serialize(primaryConfig);
-            var configuration = deserializer.Deserialize<MapAssistConfiguration>(yaml);
+            MapAssistConfiguration configuration = deserializer.Deserialize<MapAssistConfiguration>(yaml);
             return configuration;
         }
 
         public static void Merge(Dictionary<object, object> primary, Dictionary<object, object> secondary)
         {
-            foreach (var tuple in secondary)
+            foreach (KeyValuePair<object, object> tuple in secondary)
             {
                 if (!primary.ContainsKey(tuple.Key))
                 {
@@ -151,11 +151,11 @@ namespace MapAssist.Files
 
         public void SerializeToFile(T unserializedConfiguration)
         {
-            var config = MapAssistConfiguration.Loaded;
+            MapAssistConfiguration config = MapAssistConfiguration.Loaded;
             using (var streamWriter = new StreamWriter("Config.yaml"))
             {
                 streamWriter.WriteLine("# Change these settings from the Config GUI provided in MapAssist");
-                var serializer = new SerializerBuilder()
+                ISerializer serializer = new SerializerBuilder()
                     .WithNamingConvention(PascalCaseNamingConvention.Instance)
                     .WithTypeConverter(new FloatPrecisionConverter())
                     .WithTypeConverter(new AreaArrayYamlTypeConverter())

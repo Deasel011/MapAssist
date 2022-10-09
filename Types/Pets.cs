@@ -30,10 +30,10 @@ namespace MapAssist.Types
 
         public Pets Update()
         {
-            using (var processContext = GameManager.GetProcessContext())
+            using (ProcessContext processContext = GameManager.GetProcessContext())
             {
-                var firstMember = processContext.Read<IntPtr>(_pFirst);
-                var entry = GetNewEntry(firstMember);
+                IntPtr firstMember = processContext.Read<IntPtr>(_pFirst);
+                PetEntry entry = GetNewEntry(firstMember);
                 List.Add(entry);
                 while (entry.Struct.pNext != IntPtr.Zero)
                 {
@@ -46,9 +46,9 @@ namespace MapAssist.Types
 
         private PetEntry GetNewEntry(IntPtr pAddress)
         {
-            using (var processContext = GameManager.GetProcessContext())
+            using (ProcessContext processContext = GameManager.GetProcessContext())
             {
-                var pet = processContext.Read<Pet>(pAddress);
+                Pet pet = processContext.Read<Pet>(pAddress);
                 var entry = new PetEntry
                 {
                     PtrUnit = pAddress,

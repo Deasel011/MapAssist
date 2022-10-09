@@ -21,7 +21,7 @@ namespace MapAssist.Helpers
                 }
             }
 
-            foreach (var item in _qualityLevels)
+            foreach (QualityLevelsObj item in _qualityLevels)
             {
                 var test = item.name;
                 Items.QualityLevels.Add(item.key, item);

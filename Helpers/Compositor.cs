@@ -6,6 +6,7 @@ using MapAssist.Structs;
 using MapAssist.Types;
 using SharpDX;
 using SharpDX.Direct2D1;
+using SharpDX.Mathematics.Interop;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -51,7 +52,7 @@ namespace MapAssist.Helpers
 
             _areaData.CalcViewAreas(_rotateRadians);
 
-            foreach (var adjacentArea in _areaData.AdjacentAreas.Values)
+            foreach (AreaData adjacentArea in _areaData.AdjacentAreas.Values)
             {
                 adjacentArea.CalcViewAreas(_rotateRadians);
             }
@@ -85,8 +86,8 @@ namespace MapAssist.Helpers
 
             CalcTransformMatrices(gfx);
 
-            var maybeWalkableColor = MapAssistConfiguration.Loaded.MapColorConfiguration.Walkable;
-            var maybeBorderColor = MapAssistConfiguration.Loaded.MapColorConfiguration.Border;
+            Color? maybeWalkableColor = MapAssistConfiguration.Loaded.MapColorConfiguration.Walkable;
+            Color? maybeBorderColor = MapAssistConfiguration.Loaded.MapColorConfiguration.Border;
 
             if (gamemapColors != (maybeWalkableColor, maybeBorderColor))
             {
@@ -104,7 +105,7 @@ namespace MapAssist.Helpers
                 areasToRender = areasToRender.Concat(_areaData.AdjacentAreas.Values.Where(area => area.Area.RequiresStitching())).ToArray();
             }
 
-            foreach (var renderArea in areasToRender)
+            foreach (AreaData renderArea in areasToRender)
             {
                 var imageSize = new Size2((int)renderArea.ViewInputRect.Width, (int)renderArea.ViewInputRect.Height);
                 var gamemap = new Bitmap(renderTarget, imageSize, new BitmapProperties(renderTarget.PixelFormat));
@@ -112,8 +113,8 @@ namespace MapAssist.Helpers
 
                 if (maybeWalkableColor != null || maybeBorderColor != null)
                 {
-                    var walkableColor = maybeWalkableColor != null ? (Color)maybeWalkableColor : Color.Transparent;
-                    var borderColor = maybeBorderColor != null ? (Color)maybeBorderColor : Color.Transparent;
+                    Color walkableColor = maybeWalkableColor != null ? (Color)maybeWalkableColor : Color.Transparent;
+                    Color borderColor = maybeBorderColor != null ? (Color)maybeBorderColor : Color.Transparent;
 
                     for (var y = 0; y < imageSize.Height; y++)
                     {
@@ -135,7 +136,7 @@ namespace MapAssist.Helpers
                             //     continue;
                             // }
 
-                            var pixelColor = type == WALKABLE && maybeWalkableColor != null ? walkableColor :
+                            Color pixelColor = type == WALKABLE && maybeWalkableColor != null ? walkableColor :
                                 type == BORDER && maybeBorderColor != null ? borderColor :
                                 Color.Transparent;
 
@@ -151,7 +152,7 @@ namespace MapAssist.Helpers
                 }
 
                 gamemap.CopyFromMemory(bytes, imageSize.Width * 4);
-                var origin = renderArea.Origin.Add(renderArea.ViewInputRect.Left - _areaData.ViewInputRect.Left, renderArea.ViewInputRect.Top - _areaData.ViewInputRect.Top);
+                Point origin = renderArea.Origin.Add(renderArea.ViewInputRect.Left - _areaData.ViewInputRect.Left, renderArea.ViewInputRect.Top - _areaData.ViewInputRect.Top);
 
                 gamemaps.Add((gamemap, origin));
             }
@@ -171,7 +172,7 @@ namespace MapAssist.Helpers
 
             renderTarget.Transform = mapTransformMatrix.ToDXMatrix();
 
-            foreach (var (gamemap, origin) in gamemaps)
+            foreach ((Bitmap gamemap, Point origin) in gamemaps)
             {
                 DrawBitmap(gfx, gamemap, origin.Subtract(_areaData.Origin).Subtract(_areaData.MapPadding, _areaData.MapPadding), (float)MapAssistConfiguration.Loaded.RenderingConfiguration.Opacity);
             }
@@ -200,7 +201,7 @@ namespace MapAssist.Helpers
 
         private void DrawExpRange(Graphics gfx)
         {
-            var color = MapAssistConfiguration.Loaded.MapColorConfiguration.ExpRange;
+            Color? color = MapAssistConfiguration.Loaded.MapColorConfiguration.ExpRange;
 
             if (color != null && !_areaData.Area.IsTown())
             {
@@ -211,9 +212,9 @@ namespace MapAssist.Helpers
                 var offsetX = offset - (_areaData.Origin.X % snap);
                 var offsetY = offset - (_areaData.Origin.Y % snap);
 
-                var brush = CreateMapBrush(gfx, (Color)color);
+                SolidBrush brush = CreateMapBrush(gfx, (Color)color);
 
-                var center = _gameData.PlayerUnit.Position;
+                Point center = _gameData.PlayerUnit.Position;
                 center.X = (float)Math.Round((center.X + offsetX) / snap) * snap - offsetX;
                 center.Y = (float)Math.Round((center.Y + offsetY) / snap) * snap - offsetY;
 
@@ -235,11 +236,11 @@ namespace MapAssist.Helpers
                 areasToRender = areasToRender.Concat(_areaData.AdjacentAreas.Values.Where(area => area.Area.RequiresStitching())).ToArray();
             }
 
-            foreach (var area in areasToRender)
+            foreach (AreaData area in areasToRender)
             {
                 if (area.PointsOfInterest == null) continue;
 
-                foreach (var poi in area.PointsOfInterest)
+                foreach (PointOfInterest poi in area.PointsOfInterest)
                 {
                     if ((new PoiType[] { PoiType.PreviousArea, PoiType.NextArea }).Contains(poi.Type))
                     {
@@ -264,7 +265,7 @@ namespace MapAssist.Helpers
                     }
                 }
 
-                foreach (var poi in area.PointsOfInterest)
+                foreach (PointOfInterest poi in area.PointsOfInterest)
                 {
                     if (poi.Area != _areaData.Area && (new PoiType[] { PoiType.PreviousArea, PoiType.NextArea, PoiType.Quest, PoiType.Waypoint, PoiType.AreaPortal }).Contains(poi.Type))
                     {
@@ -275,7 +276,7 @@ namespace MapAssist.Helpers
                     {
                         var fontSize = gfx.ScaleFontSize((float)poi.RenderingSettings.LabelFontSize);
                         var padding = poi.RenderingSettings.CanDrawLabel() ? fontSize * 1.3f / 2 : 0; // 1.3f is the line height adjustment
-                        var poiPosition = MovePointInBounds(poi.Position, _gameData.PlayerPosition, padding);
+                        Point poiPosition = MovePointInBounds(poi.Position, _gameData.PlayerPosition, padding);
                         DrawLine(gfx, poi.RenderingSettings, _gameData.PlayerPosition, poiPosition);
                     }
 
@@ -293,7 +294,7 @@ namespace MapAssist.Helpers
 
                         if (poi.RenderingSettings.CanDrawLine() && poi.RenderingSettings.CanDrawLabel())
                         {
-                            var poiPosition = MovePointInBounds(poi.Position, _gameData.PlayerPosition);
+                            Point poiPosition = MovePointInBounds(poi.Position, _gameData.PlayerPosition);
                             drawPoiLabels.Add((poi.RenderingSettings, poiPosition, poi.Label, null));
                         }
                         else if (poi.RenderingSettings.CanDrawLabel())
@@ -304,9 +305,9 @@ namespace MapAssist.Helpers
                 }
             }
 
-            foreach (var gameObject in _gameData.Objects)
+            foreach (UnitObject gameObject in _gameData.Objects)
             {
-                var foundInArea = areasToRender.FirstOrDefault(area => area.IncludesPoint(gameObject.Position));
+                AreaData foundInArea = areasToRender.FirstOrDefault(area => area.IncludesPoint(gameObject.Position));
                 if (foundInArea != null && foundInArea.Area != _areaData.Area && !foundInArea.Area.RequiresStitching()) continue; // Don't show gamedata objects in another area if areas aren't stitched together
 
                 if (gameObject.IsPortal)
@@ -316,9 +317,9 @@ namespace MapAssist.Helpers
                     var playerNameUnicode = Encoding.UTF8.GetString(gameObject.ObjectData.Owner).TrimEnd((char)0);
                     var playerName = !string.IsNullOrWhiteSpace(playerNameUnicode) ? playerNameUnicode : null;
 
-                    var rosterEntry = _gameData.Roster.List.FirstOrDefault(x => x.Name == playerNameUnicode);
+                    RosterEntry rosterEntry = _gameData.Roster.List.FirstOrDefault(x => x.Name == playerNameUnicode);
 
-                    var render = rosterEntry != null && rosterEntry.UnitId == _gameData.PlayerUnit.UnitId ? MapAssistConfiguration.Loaded.MapConfiguration.MyPortal :
+                    PortalRendering render = rosterEntry != null && rosterEntry.UnitId == _gameData.PlayerUnit.UnitId ? MapAssistConfiguration.Loaded.MapConfiguration.MyPortal :
                         rosterEntry != null && rosterEntry.InParty ? MapAssistConfiguration.Loaded.MapConfiguration.PartyPortal :
                         rosterEntry != null ? MapAssistConfiguration.Loaded.MapConfiguration.NonPartyPortal :
                         MapAssistConfiguration.Loaded.MapConfiguration.GamePortal;
@@ -368,13 +369,13 @@ namespace MapAssist.Helpers
             }
 
             // Draw POI icons (not listed in poiRenderingOrder)
-            foreach ((var rendering, var position) in drawPoiIcons)
+            foreach ((IconRendering rendering, Point position) in drawPoiIcons)
             {
                 DrawIcon(gfx, rendering, position);
             }
 
             // Draw POI labels (not listed in poiRenderingOrder)
-            foreach ((var rendering, var position, var text, Color? color) in drawPoiLabels)
+            foreach ((PointOfInterestRendering rendering, Point position, var text, Color? color) in drawPoiLabels)
             {
                 DrawIconText(gfx, rendering, position, text, color);
             }
@@ -382,9 +383,9 @@ namespace MapAssist.Helpers
 
         private void DrawMissiles(Graphics gfx)
         {
-            foreach (var missile in _gameData.Missiles)
+            foreach (UnitMissile missile in _gameData.Missiles)
             {
-                if (MissileTypes._MissileTypes.TryGetValue(missile.TxtFileNo, out var missileType))
+                if (MissileTypes._MissileTypes.TryGetValue(missile.TxtFileNo, out MissileType missileType))
                 {
                     var missileRenderingConfig = new IconRendering[]
                     {
@@ -418,13 +419,13 @@ namespace MapAssist.Helpers
 
             RenderTarget renderTarget = gfx.GetRenderTarget();
 
-            foreach (var monster in _gameData.Monsters)
+            foreach (UnitMonster monster in _gameData.Monsters)
             {
-                var mobRender = GetMonsterIconRendering(monster);
+                IconRendering mobRender = GetMonsterIconRendering(monster);
 
                 if (NpcExtensions.IsTownsfolk(monster.Npc))
                 {
-                    var npcRender = MapAssistConfiguration.Loaded.MapConfiguration.Npc;
+                    PointOfInterestRendering npcRender = MapAssistConfiguration.Loaded.MapConfiguration.Npc;
                     if (npcRender.CanDrawIcon())
                     {
                         drawMonsterIcons.Add((npcRender, monster));
@@ -451,9 +452,9 @@ namespace MapAssist.Helpers
                 MapAssistConfiguration.Loaded.MapConfiguration.SuperUniqueMonster,
             };
 
-            foreach ((var rendering, var monster) in drawMonsterIcons.OrderBy(x => Array.IndexOf(monsterRenderingOrder, x.Item1)))
+            foreach ((IconRendering rendering, UnitMonster monster) in drawMonsterIcons.OrderBy(x => Array.IndexOf(monsterRenderingOrder, x.Item1)))
             {
-                var monsterPosition = monster.Position;
+                Point monsterPosition = monster.Position;
 
                 DrawIcon(gfx, rendering, monsterPosition);
 
@@ -463,7 +464,7 @@ namespace MapAssist.Helpers
                 {
                     monsterPosition = Vector2.Transform(monsterPosition.ToVector(), areaTransformMatrix).ToPoint();
 
-                    var currentTransform = renderTarget.Transform;
+                    RawMatrix3x2 currentTransform = renderTarget.Transform;
                     renderTarget.Transform = Matrix3x2.Identity.ToDXMatrix();
 
                     var iconShape = GetIconShape(rendering).ToRectangle();
@@ -473,7 +474,7 @@ namespace MapAssist.Helpers
 
                     var iX = -dx * (iCount - 1) / 2f; // Moves the first indicator sufficiently left so that the whole group of indicators will be centered.
 
-                    foreach (var immunity in monster.Immunities)
+                    foreach (Resist immunity in monster.Immunities)
                     {
                         var render = new IconRendering()
                         {
@@ -482,7 +483,7 @@ namespace MapAssist.Helpers
                             IconSize = ellipseSize
                         };
 
-                        var iPoint = monsterPosition.Add(new Point(iX, -iconShape.Height - render.IconSize));
+                        Point iPoint = monsterPosition.Add(new Point(iX, -iconShape.Height - render.IconSize));
                         DrawIcon(gfx, render, iPoint, equalScaling: true);
                         iX += dx;
                     }
@@ -491,7 +492,7 @@ namespace MapAssist.Helpers
                 }
             }
 
-            foreach ((var rendering, var position, var text, Color? color) in drawMonsterLabels.OrderBy(x => Array.IndexOf(monsterRenderingOrder, x.Item1)))
+            foreach ((PointOfInterestRendering rendering, Point position, var text, Color? color) in drawMonsterLabels.OrderBy(x => Array.IndexOf(monsterRenderingOrder, x.Item1)))
             {
                 DrawIconText(gfx, rendering, position, text, color);
             }
@@ -504,14 +505,14 @@ namespace MapAssist.Helpers
 
             if (MapAssistConfiguration.Loaded.ItemLog.Enabled)
             {
-                foreach (var item in _gameData.Items)
+                foreach (UnitItem item in _gameData.Items)
                 {
                     if (item.IsValidItem && item.IsDropped && !item.IsIdentified)
                     {
                         if (!_areaData.IncludesPoint(item.Position) && !IsInBounds(item.Position, _gameData.PlayerPosition)) continue; // Don't show item if not in drawn areas
 
-                        var itemPosition = item.Position;
-                        var render = MapAssistConfiguration.Loaded.MapConfiguration.Item;
+                        Point itemPosition = item.Position;
+                        PointOfInterestRendering render = MapAssistConfiguration.Loaded.MapConfiguration.Item;
 
                         drawItemIcons.Add((render, itemPosition));
                         drawItemLabels.Add((render, item.Position, item.ItemBaseName, item.ItemBaseColor));
@@ -519,12 +520,12 @@ namespace MapAssist.Helpers
                 }
             }
 
-            foreach ((var rendering, var position) in drawItemIcons)
+            foreach ((IconRendering rendering, Point position) in drawItemIcons)
             {
                 DrawIcon(gfx, rendering, position);
             }
 
-            foreach ((var rendering, var position, var text, Color? color) in drawItemLabels)
+            foreach ((PointOfInterestRendering rendering, Point position, var text, Color? color) in drawItemLabels)
             {
                 DrawIconText(gfx, rendering, position, text, color);
             }
@@ -541,9 +542,9 @@ namespace MapAssist.Helpers
                 areasToRender = areasToRender.Concat(_areaData.AdjacentAreas.Values.Where(area => area.Area.RequiresStitching())).ToArray();
             }
 
-            foreach (var pet in _gameData.Summons.ToArray())
+            foreach (UnitMonster pet in _gameData.Summons.ToArray())
             {
-                var rendering = MapAssistConfiguration.Loaded.MapConfiguration.MySummons;
+                PointOfInterestRendering rendering = MapAssistConfiguration.Loaded.MapConfiguration.MySummons;
                 if (!pet.IsPlayerOwned) rendering = MapAssistConfiguration.Loaded.MapConfiguration.OtherSummons;
 
                 if (rendering.CanDrawIcon())
@@ -552,11 +553,11 @@ namespace MapAssist.Helpers
                 }
             }
 
-            foreach (var merc in _gameData.Mercs.ToArray())
+            foreach (UnitMonster merc in _gameData.Mercs.ToArray())
             {
                 if (merc.IsCorpse) continue;
 
-                var rendering = MapAssistConfiguration.Loaded.MapConfiguration.MyMerc;
+                PointOfInterestRendering rendering = MapAssistConfiguration.Loaded.MapConfiguration.MyMerc;
                 if (!merc.IsPlayerOwned) rendering = MapAssistConfiguration.Loaded.MapConfiguration.OtherMercs;
 
                 if (rendering.CanDrawIcon())
@@ -565,9 +566,9 @@ namespace MapAssist.Helpers
                 }
             }
 
-            foreach (var corpse in _gameData.Corpses)
+            foreach (UnitPlayer corpse in _gameData.Corpses)
             {
-                var rendering = MapAssistConfiguration.Loaded.MapConfiguration.Corpse;
+                PointOfInterestRendering rendering = MapAssistConfiguration.Loaded.MapConfiguration.Corpse;
                 var fontSize = gfx.ScaleFontSize((float)rendering.LabelFontSize);
                 var canDrawLabel = rendering.CanDrawLabel();
                 var canDrawIcon = rendering.CanDrawIcon();
@@ -583,21 +584,21 @@ namespace MapAssist.Helpers
 
                 if (canDrawLabel)
                 {
-                    var poiPosition = MovePointInBounds(corpse.Position, _gameData.PlayerPosition);
+                    Point poiPosition = MovePointInBounds(corpse.Position, _gameData.PlayerPosition);
                     drawPlayerLabels.Add((rendering, poiPosition, corpse.Name + " (Corpse)", null)); //fix label when language is merged in
                 }
 
                 if (canDrawLine && corpse.Name == _gameData.PlayerUnit.Name)
                 {
                     var padding = canDrawLabel ? fontSize * 1.3f / 2 : 0; // 1.3f is the line height adjustment
-                    var poiPosition = MovePointInBounds(corpse.Position, _gameData.PlayerPosition, padding);
+                    Point poiPosition = MovePointInBounds(corpse.Position, _gameData.PlayerPosition, padding);
                     DrawLine(gfx, rendering, _gameData.PlayerPosition, poiPosition);
                 }
             }
 
-            if (_gameData.Roster.EntriesByUnitId.TryGetValue(_gameData.PlayerUnit.UnitId, out var myPlayerEntry))
+            if (_gameData.Roster.EntriesByUnitId.TryGetValue(_gameData.PlayerUnit.UnitId, out RosterEntry myPlayerEntry))
             {
-                foreach (var player in _gameData.Roster.List)
+                foreach (RosterEntry player in _gameData.Roster.List)
                 {
                     var myPlayer = player.UnitId == myPlayerEntry.UnitId;
                     var inMyParty = player.PartyID != ushort.MaxValue && player.PartyID == myPlayerEntry.PartyID;
@@ -606,7 +607,7 @@ namespace MapAssist.Helpers
                     var canDrawIcon = MapAssistConfiguration.Loaded.MapConfiguration.Player.CanDrawIcon();
                     var canDrawLabel = MapAssistConfiguration.Loaded.MapConfiguration.Player.CanDrawLabel();
 
-                    if (_gameData.Players.TryGetValue(player.UnitId, out var playerUnit))
+                    if (_gameData.Players.TryGetValue(player.UnitId, out UnitPlayer playerUnit))
                     {
                         if (!myPlayer && playerUnit.Act.ActId != _gameData.PlayerUnit.Act.ActId) continue; // Don't show player if not in the same act
                         if (!myPlayer && !areasToRender.Any(area => area.IncludesPoint(playerUnit.Position))) continue; // Don't show player if not in drawn areas
@@ -614,7 +615,7 @@ namespace MapAssist.Helpers
                         // use data from the unit table if available
                         if (playerUnit.RosterEntry.InParty)
                         {
-                            var rendering = myPlayer
+                            PointOfInterestRendering rendering = myPlayer
                                 ? MapAssistConfiguration.Loaded.MapConfiguration.Player
                                 : MapAssistConfiguration.Loaded.MapConfiguration.PartyPlayer;
 
@@ -639,7 +640,7 @@ namespace MapAssist.Helpers
                         else
                         {
                             // not in my party
-                            var rendering = (myPlayer
+                            PointOfInterestRendering rendering = (myPlayer
                                 ? MapAssistConfiguration.Loaded.MapConfiguration.Player
                                 : (!playerUnit.IsCorpse && (playerUnit.RosterEntry.IsHostile || playerUnit.RosterEntry.IsHostileTo)
                                     ? MapAssistConfiguration.Loaded.MapConfiguration.HostilePlayer
@@ -654,7 +655,7 @@ namespace MapAssist.Helpers
                             {
                                 var fontSize = gfx.ScaleFontSize((float)MapAssistConfiguration.Loaded.MapConfiguration.HostilePlayer.LabelFontSize);
                                 var padding = rendering.CanDrawLabel() ? fontSize * 1.3f / 2 : 0; // 1.3f is the line height adjustment
-                                var poiPosition = MovePointInBounds(playerUnit.Position, _gameData.PlayerPosition, padding);
+                                Point poiPosition = MovePointInBounds(playerUnit.Position, _gameData.PlayerPosition, padding);
                                 DrawLine(gfx, MapAssistConfiguration.Loaded.MapConfiguration.HostilePlayer, _gameData.PlayerPosition, poiPosition);
                             }
 
@@ -672,7 +673,7 @@ namespace MapAssist.Helpers
                         // only draw if in the same party, otherwise position/area data will not be up to date
                         if (inMyParty && player.PartyID < ushort.MaxValue)
                         {
-                            var rendering = MapAssistConfiguration.Loaded.MapConfiguration.PartyPlayer;
+                            PointOfInterestRendering rendering = MapAssistConfiguration.Loaded.MapConfiguration.PartyPlayer;
                             if (canDrawIcon)
                             {
                                 drawPlayerIcons.Add((rendering, player.Position));
@@ -699,12 +700,12 @@ namespace MapAssist.Helpers
                 MapAssistConfiguration.Loaded.MapConfiguration.HostilePlayer,
             };
 
-            foreach ((var rendering, var position) in drawPlayerIcons.OrderBy(x => Array.IndexOf(playersRenderingOrder, x.Item1)))
+            foreach ((IconRendering rendering, Point position) in drawPlayerIcons.OrderBy(x => Array.IndexOf(playersRenderingOrder, x.Item1)))
             {
                 DrawIcon(gfx, rendering, position);
             }
 
-            foreach ((var rendering, var position, var text, Color? color) in drawPlayerLabels.OrderBy(x => Array.IndexOf(playersRenderingOrder, x.Item1)))
+            foreach ((PointOfInterestRendering rendering, Point position, var text, Color? color) in drawPlayerLabels.OrderBy(x => Array.IndexOf(playersRenderingOrder, x.Item1)))
             {
                 DrawIconText(gfx, rendering, position, text, color);
             }
@@ -717,10 +718,10 @@ namespace MapAssist.Helpers
 
             var buffImageScale = (float)MapAssistConfiguration.Loaded.RenderingConfiguration.BuffSize * 59 / 132 * gfx.Height / 1080;
 
-            var stateList = _gameData.PlayerUnit.StateList;
+            List<State> stateList = _gameData.PlayerUnit.StateList;
             var imgDimensions = 132f * buffImageScale;
 
-            var buffAlignment = MapAssistConfiguration.Loaded.RenderingConfiguration.BuffPosition;
+            BuffPosition buffAlignment = MapAssistConfiguration.Loaded.RenderingConfiguration.BuffPosition;
             var buffYPos = 0f;
 
             var playerBuffPosition = (gfx.Height / 2f) - imgDimensions - (gfx.Height * .15f);
@@ -755,7 +756,7 @@ namespace MapAssist.Helpers
 
             var alertLoweredRes = false;
 
-            foreach (var state in stateList)
+            foreach (State state in stateList)
             {
                 var resImg = Properties.Resources.ResourceManager.GetObject(state.ToString());
 
@@ -769,7 +770,7 @@ namespace MapAssist.Helpers
 
                     if (buffsByColor.ContainsKey(buffColor))
                     {
-                        var bmp = CreateResourceBitmap(gfx, state.ToString());
+                        Bitmap bmp = CreateResourceBitmap(gfx, state.ToString());
                         bmp.Tag = state.ToString().ToProperCase();
                         buffsByColor[buffColor].Add(bmp);
                         totalBuffs++;
@@ -807,12 +808,12 @@ namespace MapAssist.Helpers
             if (buffImageScale > 0)
             {
                 var buffIndex = 0;
-                foreach (var buff in buffsByColor)
+                foreach (KeyValuePair<Color, List<Bitmap>> buff in buffsByColor)
                 {
                     for (var i = 0; i < buff.Value.Count; i++)
                     {
-                        var buffImg = buff.Value[i];
-                        var buffColor = buff.Key;
+                        Bitmap buffImg = buff.Value[i];
+                        Color buffColor = buff.Key;
                         var drawPoint = new Point((gfx.Width / 2f) - (totalBuffs * imgDimensions / 2f) + (buffIndex * imgDimensions), buffYPos);
                         DrawBitmap(gfx, buffImg, drawPoint, 1, size: buffImageScale);
                         var size = new Point(imgDimensions + buffImageScale, imgDimensions + buffImageScale);
@@ -829,16 +830,16 @@ namespace MapAssist.Helpers
                         var pen = new Pen(buffColor, buffImageScale);
                         if (buffColor == States.DebuffColor)
                         {
-                            var debuffColor = States.DebuffColor;
+                            Color debuffColor = States.DebuffColor;
                             debuffColor = Color.FromArgb(100, debuffColor.R, debuffColor.G, debuffColor.B);
-                            var brush = CreateBrush(gfx, debuffColor);
+                            SolidBrush brush = CreateBrush(gfx, debuffColor);
 
                             gfx.FillRectangle(brush, rect);
                             gfx.DrawRectangle(brush, rect, 1);
                         }
                         else
                         {
-                            var brush = CreateBrush(gfx, buffColor);
+                            SolidBrush brush = CreateBrush(gfx, buffColor);
                             gfx.DrawRectangle(brush, rect, 1);
                         }
 
@@ -858,7 +859,7 @@ namespace MapAssist.Helpers
                     DrawText(gfx, new Point(gfx.Width / 2, playerResPosition), "⚠️", fontFamily, alertFontSize, Color.Red, true, TextAlign.Center, 0.8f);
                 }
 
-                foreach (var (i, immunity, value) in _gameData.PlayerUnit.GetResists(_gameData.Difficulty).Select((x, i) => (i, x.Key, x.Value)))
+                foreach ((var i, Resist immunity, var value) in _gameData.PlayerUnit.GetResists(_gameData.Difficulty).Select((x, i) => (i, x.Key, x.Value)))
                 {
                     var immunityFontSize = gfx.ScaleFontSize(14);
                     var distBetween = immunityFontSize * 2.0f;
@@ -880,22 +881,22 @@ namespace MapAssist.Helpers
 
             (UnitMonster, string)[] getActiveMonsters()
             {
-                var areaMonsters = _gameData.Monsters.Where(x => areasToRender.Any(y => y.IncludesPoint(x.Position))).ToArray();
-                var hoveredUnit = _gameData.Monsters.Where(x => x.IsHovered).ToArray();
+                UnitMonster[] areaMonsters = _gameData.Monsters.Where(x => areasToRender.Any(y => y.IncludesPoint(x.Position))).ToArray();
+                UnitMonster[] hoveredUnit = _gameData.Monsters.Where(x => x.IsHovered).ToArray();
 
-                var bosses = areaMonsters.Where(x => NPC.Bosses.Contains(x.Npc) && (x.IsHovered || hoveredUnit.Count() == 0)).Select(x => (x, NpcExtensions.Name(x.Npc))).ToArray();
+                (UnitMonster x, string)[] bosses = areaMonsters.Where(x => NPC.Bosses.Contains(x.Npc) && (x.IsHovered || hoveredUnit.Count() == 0)).Select(x => (x, NpcExtensions.Name(x.Npc))).ToArray();
                 if (bosses.Count() > 0) return bosses;
 
-                var superUniques = areaMonsters.Where(x => x.IsSuperUnique && (x.IsHovered || hoveredUnit.Count() == 0)).Select(x => (x, NpcExtensions.LocalizedName(x.SuperUniqueName))).ToArray();
+                (UnitMonster x, string)[] superUniques = areaMonsters.Where(x => x.IsSuperUnique && (x.IsHovered || hoveredUnit.Count() == 0)).Select(x => (x, NpcExtensions.LocalizedName(x.SuperUniqueName))).ToArray();
                 if (superUniques.Count() > 0) return superUniques;
 
                 return new (UnitMonster, string)[] { };
             };
 
-            var activeMonsters = getActiveMonsters();
+            (UnitMonster, string)[] activeMonsters = getActiveMonsters();
             if (activeMonsters.Length == 0) return;
 
-            foreach (var (i, (activeMonster, name)) in activeMonsters.Select((value, i) => (i, value)))
+            foreach ((var i, (UnitMonster activeMonster, var name)) in activeMonsters.Select((value, i) => (i, value)))
             {
                 // Health
                 var healthPerc = activeMonster.HealthPercentage;
@@ -906,9 +907,9 @@ namespace MapAssist.Helpers
                 var font = MapAssistConfiguration.Loaded.GameInfo.LabelFont;
 
                 var fontSize = barHeight / 2f;
-                var blackBrush = CreateBrush(gfx, Color.Black);
-                var darkFillBrush = CreateBrush(gfx, Color.FromArgb(66, 0, 125));
-                var lightFillBrush = CreateBrush(gfx, Color.FromArgb(100, 93, 107));
+                SolidBrush blackBrush = CreateBrush(gfx, Color.Black);
+                SolidBrush darkFillBrush = CreateBrush(gfx, Color.FromArgb(66, 0, 125));
+                SolidBrush lightFillBrush = CreateBrush(gfx, Color.FromArgb(100, 93, 107));
 
                 var center = new Point(gfx.Width / 2, gfx.Height * (0.043f + i * 0.05f));
                 var barRect = new Rectangle(center.X - barWidth / 2, center.Y - barHeight / 2, center.X + barWidth / 2, center.Y + barHeight / 2);
@@ -918,7 +919,7 @@ namespace MapAssist.Helpers
                 gfx.FillRectangle(darkFillBrush, fillRect);
                 gfx.DrawRectangle(blackBrush, barRect, 2);
 
-                var infoTextPosition = center.Add(0, gfx.Height * (activeMonster.Immunities.Count() > 0 ? -0.007f : 0));
+                Point infoTextPosition = center.Add(0, gfx.Height * (activeMonster.Immunities.Count() > 0 ? -0.007f : 0));
 
                 DrawText(gfx, infoTextPosition, infoText, font, fontSize, Color.FromArgb(190, 171, 113), false, TextAlign.Center);
 
@@ -928,7 +929,7 @@ namespace MapAssist.Helpers
                 var immunitiesWidth = activeMonster.Immunities.Select(x => gfx.MeasureString(CreateFont(gfx, font, immunityFontSize), x.ToString()).X).ToArray();
                 var immunitiesTotalWidth = immunitiesWidth.Sum() + immunitiesDistanceBetween * (activeMonster.Immunities.Count() - 1);
 
-                foreach (var (j, immunity) in activeMonster.Immunities.Select((x, j) => (j, x)))
+                foreach ((var j, Resist immunity) in activeMonster.Immunities.Select((x, j) => (j, x)))
                 {
                     DrawText(gfx, new Point(gfx.Width / 2 - immunitiesTotalWidth / 2 + immunitiesWidth.Take(j).Sum() + immunitiesWidth[j] / 2 + j * immunitiesDistanceBetween, center.Y + gfx.Height * 0.01f), immunity.ToString(), font, immunityFontSize, ResistColors.ResistColor[immunity], true, TextAlign.Center, 0.8f);
                 }
@@ -952,7 +953,7 @@ namespace MapAssist.Helpers
             var fontSize = gfx.ScaleFontSize((float)MapAssistConfiguration.Loaded.GameInfo.LabelFontSize);
             var lineHeight = gfx.LineHeight(fontSize);
             var textShadow = MapAssistConfiguration.Loaded.GameInfo.LabelTextShadow;
-            var textAlign = MapAssistConfiguration.Loaded.GameInfo.Position == GameInfoPosition.TopRight ? TextAlign.Right : TextAlign.Left;
+            TextAlign textAlign = MapAssistConfiguration.Loaded.GameInfo.Position == GameInfoPosition.TopRight ? TextAlign.Right : TextAlign.Left;
             var textColor = Color.FromArgb(199, 179, 119);
 
             // Game Name
@@ -1046,21 +1047,21 @@ namespace MapAssist.Helpers
 
             // Setup
             var fontSize = gfx.ScaleFontSize((float)MapAssistConfiguration.Loaded.ItemLog.LabelFontSize);
-            var font = CreateFont(gfx, MapAssistConfiguration.Loaded.ItemLog.LabelFont, fontSize);
+            Font font = CreateFont(gfx, MapAssistConfiguration.Loaded.ItemLog.LabelFont, fontSize);
             var lineHeight = gfx.LineHeight(fontSize);
             var textShadow = MapAssistConfiguration.Loaded.ItemLog.LabelTextShadow;
-            var shadowBrush = CreateBrush(gfx, Color.Black, 0.6f);
+            SolidBrush shadowBrush = CreateBrush(gfx, Color.Black, 0.6f);
             var shadowOffset = fontSize * 0.0625f; // 1/16th
 
             // Item Log
-            var itemsToShow = _gameData.ItemLog.Where(item => item != null && !item.ItemLogExpired && item.UnitItem.ItemBaseColor != Color.Empty).ToArray();
+            ItemLogEntry[] itemsToShow = _gameData.ItemLog.Where(item => item != null && !item.ItemLogExpired && item.UnitItem.ItemBaseColor != Color.Empty).ToArray();
             for (var i = 0; i < itemsToShow.Length; i++)
             {
-                var item = itemsToShow[i];
+                ItemLogEntry item = itemsToShow[i];
                 var itemText = item.Text;
-                var position = anchor.Add(0, i * lineHeight);
-                var brush = CreateBrush(gfx, item.UnitItem.ItemBaseColor);
-                var stringSize = gfx.MeasureString(font, itemText);
+                Point position = anchor.Add(0, i * lineHeight);
+                SolidBrush brush = CreateBrush(gfx, item.UnitItem.ItemBaseColor);
+                Point stringSize = gfx.MeasureString(font, itemText);
 
                 if (MapAssistConfiguration.Loaded.ItemLog.Position == GameInfoPosition.TopRight)
                 {
@@ -1073,8 +1074,8 @@ namespace MapAssist.Helpers
 
                 if (MapAssistConfiguration.Loaded.ItemLog.ShowDistanceToItem && item.Area == _gameData.Area && !item.UnitItem.IsInStore)
                 {
-                    var smallFont = CreateFont(gfx, MapAssistConfiguration.Loaded.ItemLog.LabelFont, fontSize * 0.7f);
-                    var rangePosition = position.Add(stringSize.X + 8, fontSize * 0.2f);
+                    Font smallFont = CreateFont(gfx, MapAssistConfiguration.Loaded.ItemLog.LabelFont, fontSize * 0.7f);
+                    Point rangePosition = position.Add(stringSize.X + 8, fontSize * 0.2f);
 
                     var rangeText = item.UnitItem.IsDropped
                         ? $"(range: {Math.Round(_gameData.PlayerPosition.DistanceTo(item.UnitItem.Position))})"
@@ -1082,7 +1083,7 @@ namespace MapAssist.Helpers
 
                     if (MapAssistConfiguration.Loaded.ItemLog.Position == GameInfoPosition.TopRight)
                     {
-                        var rangeTextSize = gfx.MeasureString(smallFont, rangeText);
+                        Point rangeTextSize = gfx.MeasureString(smallFont, rangeText);
                         position = position.Subtract(rangeTextSize.X, 0);
                         rangePosition = rangePosition.Subtract(rangeTextSize.X, 0);
                     }
@@ -1107,9 +1108,9 @@ namespace MapAssist.Helpers
 
                     var angle = endPosition.Subtract(startPosition).Angle();
 
-                    var arrowcenter = position.Add(-stringSize.Y / 2 - 5, stringSize.Y / 2);
-                    var arrowStartPosition = arrowcenter.Add(stringSize.Y / 2, 0).Rotate(angle + (float)Math.PI, arrowcenter);
-                    var arrowEndPosition = arrowcenter.Add(stringSize.Y / 2, 0).Rotate(angle, arrowcenter);
+                    Point arrowcenter = position.Add(-stringSize.Y / 2 - 5, stringSize.Y / 2);
+                    Point arrowStartPosition = arrowcenter.Add(stringSize.Y / 2, 0).Rotate(angle + (float)Math.PI, arrowcenter);
+                    Point arrowEndPosition = arrowcenter.Add(stringSize.Y / 2, 0).Rotate(angle, arrowcenter);
 
                     var rendering = new PointOfInterestRendering()
                     {
@@ -1169,8 +1170,8 @@ namespace MapAssist.Helpers
             // Player Experience
             if (_gameData.PlayerUnit.Level > 0)
             {
-                var blackBrush = CreateBrush(gfx, Color.Black, 0.7f);
-                var font = CreateFont(gfx, fontFamily, gfx.ScaleFontSize(17));
+                SolidBrush blackBrush = CreateBrush(gfx, Color.Black, 0.7f);
+                Font font = CreateFont(gfx, fontFamily, gfx.ScaleFontSize(17));
 
                 var anchor = new Point(centerX, gfx.Height * 0.94f);
 
@@ -1181,11 +1182,11 @@ namespace MapAssist.Helpers
 
                 if (text.Length > 0)
                 {
-                    var textSize = gfx.MeasureString(font, string.Join(Environment.NewLine, text));
+                    Point textSize = gfx.MeasureString(font, string.Join(Environment.NewLine, text));
 
                     foreach (var line in text)
                     {
-                        var lineSize = gfx.MeasureString(font, line);
+                        Point lineSize = gfx.MeasureString(font, line);
 
                         gfx.FillRectangle(blackBrush, new Rectangle(anchor.X - textSize.X / 2, anchor.Y - lineSize.Y / 2, anchor.X + textSize.X / 2, anchor.Y + lineSize.Y / 2));
                         DrawText(gfx, anchor, line, fontFamily, font.FontSize * 0.8f, Color.White, false, TextAlign.Center);
@@ -1198,7 +1199,7 @@ namespace MapAssist.Helpers
             // Belt items
             if (MapAssistConfiguration.Loaded.RenderingConfiguration.ShowPotionBelt)
             {
-                var font = CreateFont(gfx, fontFamily, gfx.ScaleFontSize(20));
+                Font font = CreateFont(gfx, fontFamily, gfx.ScaleFontSize(20));
                 var colors = new Color[]
                 {
                     Color.FromArgb(238, 168, 174), // Health
@@ -1208,12 +1209,12 @@ namespace MapAssist.Helpers
 
                 for (var i = 0; i < 4; i++)
                 {
-                    var items = _gameData.PlayerUnit.BeltItems[i].Where(x => x != null).ToArray();
+                    UnitItem[] items = _gameData.PlayerUnit.BeltItems[i].Where(x => x != null).ToArray();
 
                     if (items.Length == 0) continue;
 
                     var itemTypes = items.Select(x => x.Item.IsHealthPotion() ? 0 : x.Item.IsManaPotion() ? 1 : x.Item.IsRejuvPotion() ? 2 : 3).ToArray();
-                    var color = itemTypes.Distinct().Count() == 1 && itemTypes[0] < colors.Length ? colors[itemTypes[0]] : Color.White;
+                    Color color = itemTypes.Distinct().Count() == 1 && itemTypes[0] < colors.Length ? colors[itemTypes[0]] : Color.White;
                     var showAsterisk = items.Count(x => x.Item == items[0].Item) < items.Length;
 
                     var position = new Point(
@@ -1240,7 +1241,7 @@ namespace MapAssist.Helpers
             var textColor = Color.FromArgb(199, 179, 119);
 
             var text = "https://mapassist.github.io";
-            var textSize = gfx.MeasureString(CreateFont(gfx, font, fontSize), text);
+            Point textSize = gfx.MeasureString(CreateFont(gfx, font, fontSize), text);
             var anchor = new Point(gfx.Width - 5, gfx.Height - textSize.Y);
             DrawText(gfx, anchor, text, font, fontSize, textColor, true, TextAlign.Right, opacity: 0.5f);
 
@@ -1271,17 +1272,17 @@ namespace MapAssist.Helpers
         private void DrawIcon(Graphics gfx, IconRendering rendering, Point position,
             bool equalScaling = false)
         {
-            var renderTarget = gfx.GetRenderTarget();
-            var currentTransform = renderTarget.Transform;
+            RenderTarget renderTarget = gfx.GetRenderTarget();
+            RawMatrix3x2 currentTransform = renderTarget.Transform;
             renderTarget.Transform = Matrix3x2.Identity.ToDXMatrix();
 
             position = Vector2.Transform(position.ToVector(), currentTransform.ToMatrix()).ToPoint();
 
             var fill = !rendering.IconShape.ToString().ToLower().EndsWith("outline");
-            var fillBrush = CreateIconBrush(gfx, rendering.IconColor, rendering.IconOpacity);
-            var outlineBrush = CreateIconBrush(gfx, rendering.IconOutlineColor, rendering.IconOpacity);
+            SolidBrush fillBrush = CreateIconBrush(gfx, rendering.IconColor, rendering.IconOpacity);
+            SolidBrush outlineBrush = CreateIconBrush(gfx, rendering.IconOutlineColor, rendering.IconOpacity);
 
-            var points = GetIconShape(rendering, equalScaling).Select(point => point.Add(position)).ToArray();
+            Point[] points = GetIconShape(rendering, equalScaling).Select(point => point.Add(position)).ToArray();
 
             var _scaleHeight = equalScaling ? scaleWidth : scaleHeight;
 
@@ -1330,7 +1331,7 @@ namespace MapAssist.Helpers
 
                         if (rendering.IconShape == Shape.Pentagram && (rendering.IconColor.A > 0 || rendering.IconOutlineColor.A > 0))
                         {
-                            var brush = rendering.IconOutlineColor.A > 0 ? outlineBrush : fillBrush;
+                            SolidBrush brush = rendering.IconOutlineColor.A > 0 ? outlineBrush : fillBrush;
                             gfx.DrawEllipse(brush, position, rendering.IconSize * scaleWidth / 2 + rendering.IconThickness, rendering.IconSize * _scaleHeight / 2 + rendering.IconThickness, rendering.IconThickness); // Divide by 2 because the parameter requires a radius
                         }
 
@@ -1344,8 +1345,8 @@ namespace MapAssist.Helpers
         private void DrawLine(Graphics gfx, PointOfInterestRendering rendering, Point startPosition, Point endPosition,
             bool transformForMap = true, bool renderIfShort = false, int spacing = 5)
         {
-            var renderTarget = gfx.GetRenderTarget();
-            var currentTransform = renderTarget.Transform;
+            RenderTarget renderTarget = gfx.GetRenderTarget();
+            RawMatrix3x2 currentTransform = renderTarget.Transform;
             renderTarget.Transform = Matrix3x2.Identity.ToDXMatrix();
 
             if (transformForMap)
@@ -1357,7 +1358,7 @@ namespace MapAssist.Helpers
             var angle = endPosition.Subtract(startPosition).Angle();
             var length = endPosition.Rotate(-angle, startPosition).X - startPosition.X;
 
-            var brush = CreateIconBrush(gfx, rendering.LineColor, rendering.IconOpacity);
+            SolidBrush brush = CreateIconBrush(gfx, rendering.LineColor, rendering.IconOpacity);
 
             startPosition = startPosition.Rotate(-angle, startPosition).Add(spacing * scaleWidth, 0).Rotate(angle, startPosition); // Add a little extra spacing from the start point
 
@@ -1367,7 +1368,7 @@ namespace MapAssist.Helpers
                 {
                     endPosition = endPosition.Rotate(-angle, startPosition).Subtract(spacing * scaleWidth, 0).Rotate(angle, startPosition); // Subtract a little extra spacing from the end point
 
-                    var points = new Point[]
+                    Point[] points = new Point[]
                     {
                         new Point((float)(Math.Sqrt(3) / -2), 0.5f),
                         new Point((float)(Math.Sqrt(3) / -2), -0.5f),
@@ -1391,20 +1392,20 @@ namespace MapAssist.Helpers
         private void DrawIconText(Graphics gfx, PointOfInterestRendering rendering, Point position, string text,
             Color? color = null)
         {
-            var renderTarget = gfx.GetRenderTarget();
-            var currentTransform = renderTarget.Transform;
+            RenderTarget renderTarget = gfx.GetRenderTarget();
+            RawMatrix3x2 currentTransform = renderTarget.Transform;
             renderTarget.Transform = Matrix3x2.Identity.ToDXMatrix();
 
             var playerCoord = Vector2.Transform(_gameData.PlayerPosition.ToVector(), areaTransformMatrix);
             position = Vector2.Transform(position.ToVector(), areaTransformMatrix).ToPoint();
 
-            var useColor = color ?? rendering.LabelColor;
+            Color useColor = color ?? rendering.LabelColor;
             var opacity = (float)(MapAssistConfiguration.Loaded.RenderingConfiguration.IconOpacity * rendering.IconOpacity);
 
             var fontSize = gfx.ScaleFontSize((float)rendering.LabelFontSize);
-            var font = CreateFont(gfx, rendering.LabelFont, fontSize);
+            Font font = CreateFont(gfx, rendering.LabelFont, fontSize);
             var iconShape = GetIconShape(rendering).ToRectangle();
-            var textSize = gfx.MeasureString(font, text);
+            Point textSize = gfx.MeasureString(font, text);
             var textShadow = rendering.LabelTextShadow;
 
             var multiplier = playerCoord.Y < position.Y ? 1 : -1;
@@ -1424,10 +1425,10 @@ namespace MapAssist.Helpers
         private void DrawText(Graphics gfx, Point position, string text, string fontFamily, float fontSize,
             Color color, bool textShadow, TextAlign align, float opacity = 1f)
         {
-            var font = CreateFont(gfx, fontFamily, fontSize);
-            var brush = CreateBrush(gfx, color, opacity);
+            Font font = CreateFont(gfx, fontFamily, fontSize);
+            SolidBrush brush = CreateBrush(gfx, color, opacity);
 
-            var stringSize = gfx.MeasureString(font, text);
+            Point stringSize = gfx.MeasureString(font, text);
             if (align == TextAlign.Center)
             {
                 position = position.Subtract(stringSize.X / 2, stringSize.Y / 2);
@@ -1440,7 +1441,7 @@ namespace MapAssist.Helpers
             if (textShadow)
             {
                 var shadowOpacity = opacity * 0.6f;
-                var shadowBrush = CreateBrush(gfx, Color.Black, shadowOpacity);
+                SolidBrush shadowBrush = CreateBrush(gfx, Color.Black, shadowOpacity);
                 var shadowOffset = fontSize * 0.0625f;
                 gfx.DrawText(font, shadowBrush, position.X + shadowOffset, position.Y + shadowOffset, text);
             }
@@ -1626,7 +1627,7 @@ namespace MapAssist.Helpers
 
         private Point MoveTextInBounds(Point point, string text, Point size)
         {
-            var halfSize = size.Multiply(1 / 2f);
+            Point halfSize = size.Multiply(1 / 2f);
 
             if (point.X - halfSize.X < _drawBounds.Left) point.X += _drawBounds.Left - point.X + halfSize.X + 1; // Single extra pixel to prevent GameOverlay from word wrapping
             if (point.X + halfSize.X > _drawBounds.Right) point.X += _drawBounds.Right - point.X - halfSize.X - 1; // Single extra pixel to prevent GameOverlay from word wrapping
@@ -1737,7 +1738,7 @@ namespace MapAssist.Helpers
 
             if (!cacheBitmaps.ContainsKey(key))
             {
-                var renderTarget = gfx.GetRenderTarget();
+                RenderTarget renderTarget = gfx.GetRenderTarget();
 
                 var resImg = Properties.Resources.ResourceManager.GetObject(name);
                 cacheBitmaps[key] = new System.Drawing.Bitmap((System.Drawing.Bitmap)resImg).ToDXBitmap(renderTarget);
@@ -1750,7 +1751,7 @@ namespace MapAssist.Helpers
 
         private Font CreateFont(Graphics gfx, string fontFamilyName, float size)
         {
-            var key = (fontFamilyName, size);
+            (string fontFamilyName, float size) key = (fontFamilyName, size);
             if (!cacheFonts.ContainsKey(key))
             {
                 if (fontFamilyName.Equals("Exocet Blizzard Mixed Caps"))
@@ -1787,7 +1788,7 @@ namespace MapAssist.Helpers
         private SolidBrush CreateBrush(Graphics gfx, Color color,
             float opacity = 1)
         {
-            var key = (color, opacity);
+            (Color color, float opacity) key = (color, opacity);
             if (!cacheBrushes.ContainsKey(key)) cacheBrushes[key] = gfx.CreateSolidBrush(color.SetOpacity((float)opacity).ToGameOverlayColor());
             return cacheBrushes[key];
         }
@@ -1796,16 +1797,16 @@ namespace MapAssist.Helpers
 
         public void Dispose()
         {
-            foreach (var (gamemap, _) in gamemaps)
+            foreach ((Bitmap gamemap, Point _) in gamemaps)
             {
                 if (gamemap != null) gamemap.Dispose();
             }
 
             gamemaps = new HashSet<(Bitmap, Point)>();
 
-            foreach (var item in cacheBitmaps.Values) item.Dispose();
-            foreach (var item in cacheFonts.Values) item.Dispose();
-            foreach (var item in cacheBrushes.Values) item.Dispose();
+            foreach (Bitmap item in cacheBitmaps.Values) item.Dispose();
+            foreach (Font item in cacheFonts.Values) item.Dispose();
+            foreach (SolidBrush item in cacheBrushes.Values) item.Dispose();
         }
     }
 }

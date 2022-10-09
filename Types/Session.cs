@@ -19,19 +19,44 @@ namespace MapAssist.Types
             Update();
         }
 
+        public Session(IntPtr pSession, ProcessContext context)
+        {
+            _pSession = pSession;
+            Update(context);
+        }
+
         public Session Update()
         {
-            using (var processContext = GameManager.GetProcessContext())
+            using (ProcessContext processContext = GameManager.GetProcessContext())
             {
-                var sessionData = processContext.Read<Structs.Session>(_pSession);
+                Structs.Session sessionData = processContext.Read<Structs.Session>(_pSession);
 
                 try
                 {
-                    _gameName = Encoding.UTF8.GetString(sessionData.GameName.Take(sessionData.GameNameLength).ToArray()).TrimEnd((char)0);
-                    _gamePass = Encoding.UTF8.GetString(sessionData.GamePass.Take(sessionData.GamePassLength).ToArray()).TrimEnd((char)0);
+                    _gameName = Encoding.UTF8.GetString(sessionData.GameName.Take(sessionData.GameNameLength).ToArray())
+                        .TrimEnd((char)0);
+                    _gamePass = Encoding.UTF8.GetString(sessionData.GamePass.Take(sessionData.GamePassLength).ToArray())
+                        .TrimEnd((char)0);
                 }
                 catch (Exception) { }
             }
+
+            return this;
+        }
+
+        public Session Update(ProcessContext processContext)
+        {
+            Structs.Session sessionData = processContext.Read<Structs.Session>(_pSession);
+
+            try
+            {
+                _gameName = Encoding.UTF8.GetString(sessionData.GameName.Take(sessionData.GameNameLength).ToArray())
+                    .TrimEnd((char)0);
+                _gamePass = Encoding.UTF8.GetString(sessionData.GamePass.Take(sessionData.GamePassLength).ToArray())
+                    .TrimEnd((char)0);
+            }
+            catch (Exception) { }
+
             return this;
         }
 
@@ -54,10 +79,12 @@ namespace MapAssist.Types
             {
                 return string.Format("{0:D1}h {1:D1}m {2:D1}s", t.Hours, t.Minutes, t.Seconds);
             }
+
             if (t.Minutes > 0)
             {
                 return string.Format("{0:D1}m {1:D1}s", t.Minutes, t.Seconds);
             }
+
             return string.Format("{0:D1}s", t.Seconds);
         }
     }

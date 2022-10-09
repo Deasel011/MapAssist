@@ -162,16 +162,16 @@ namespace MapAssist.Helpers
 
         public object ReadYaml(IParser parser, Type type)
         {
-            if (parser.TryConsume<Scalar>(out var scalar))
+            if (parser.TryConsume<Scalar>(out Scalar scalar))
             {
                 var item = new List<string> { scalar.Value };
                 return ParseAreaStringList(item);
             }
 
-            if (parser.TryConsume<SequenceStart>(out var _))
+            if (parser.TryConsume<SequenceStart>(out SequenceStart _))
             {
                 var items = new List<string>();
-                while (parser.TryConsume<Scalar>(out var scalarItem))
+                while (parser.TryConsume<Scalar>(out Scalar scalarItem))
                 {
                     items.Add(scalarItem.Value);
                 }
@@ -186,7 +186,7 @@ namespace MapAssist.Helpers
             var node = (Area[])value;
             emitter.Emit(new SequenceStart(null, null, false, SequenceStyle.Block));
 
-            foreach (var child in node)
+            foreach (Area child in node)
             {
                 emitter.Emit(new Scalar(null, child.NameInternal()));
             }
@@ -217,9 +217,9 @@ namespace MapAssist.Helpers
 
         public object ReadYaml(IParser parser, Type type)
         {
-            if (parser.TryConsume<Scalar>(out var scalar))
+            if (parser.TryConsume<Scalar>(out Scalar scalar))
             {
-                var item = Items.ParseFromString(scalar.Value);
+                Item? item = Items.ParseFromString(scalar.Value);
                 if (item != null)
                 {
                     return item;
@@ -248,16 +248,16 @@ namespace MapAssist.Helpers
 
         public object ReadYaml(IParser parser, Type type)
         {
-            if (parser.TryConsume<Scalar>(out var scalar))
+            if (parser.TryConsume<Scalar>(out Scalar scalar))
             {
                 var items = new List<string>() { scalar.Value };
                 return ParseItemQuality(items);
             }
 
-            if (parser.TryConsume<SequenceStart>(out var _))
+            if (parser.TryConsume<SequenceStart>(out SequenceStart _))
             {
                 var items = new List<string>();
-                while (parser.TryConsume<Scalar>(out var scalarItem))
+                while (parser.TryConsume<Scalar>(out Scalar scalarItem))
                 {
                     items.Add(scalarItem.Value);
                 }
@@ -294,16 +294,16 @@ namespace MapAssist.Helpers
 
         public object ReadYaml(IParser parser, Type type)
         {
-            if (parser.TryConsume<Scalar>(out var scalar))
+            if (parser.TryConsume<Scalar>(out Scalar scalar))
             {
                 var items = new List<string>() { scalar.Value };
                 return ParseItemTier(items);
             }
 
-            if (parser.TryConsume<SequenceStart>(out var _))
+            if (parser.TryConsume<SequenceStart>(out SequenceStart _))
             {
                 var items = new List<string>();
-                while (parser.TryConsume<Scalar>(out var scalarItem))
+                while (parser.TryConsume<Scalar>(out Scalar scalarItem))
                 {
                     items.Add(scalarItem.Value);
                 }
@@ -340,7 +340,7 @@ namespace MapAssist.Helpers
 
         public object ReadYaml(IParser parser, Type type)
         {
-            if (parser.TryConsume<Scalar>(out var scalar))
+            if (parser.TryConsume<Scalar>(out Scalar scalar))
             {
                 if (Enum.TryParse(scalar.Value.Replace(" ", ""), true, out SkillTree skillTree))
                 {
@@ -370,7 +370,7 @@ namespace MapAssist.Helpers
 
         public object ReadYaml(IParser parser, Type type)
         {
-            if (parser.TryConsume<Scalar>(out var scalar))
+            if (parser.TryConsume<Scalar>(out Scalar scalar))
             {
                 if (Enum.TryParse(scalar.Value.Replace(" ", ""), true, out Skill skill))
                 {

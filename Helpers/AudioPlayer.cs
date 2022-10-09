@@ -18,11 +18,11 @@ namespace MapAssist.Helpers
 
         public static void PlayItemAlert(string soundFile, bool stopPreviousAlert = false)
         {
-            var itemSoundPlayer = GetSoundPlayer(soundFile);
+            SoundPlayer itemSoundPlayer = GetSoundPlayer(soundFile);
 
             if (itemSoundPlayer != null)
             {
-                var now = DateTime.Now;
+                DateTime now = DateTime.Now;
                 if (now - _itemAlertLastPlayed >= TimeSpan.FromSeconds(1) || stopPreviousAlert)
                 {
                     if (lastItemSoundPlayer != null) lastItemSoundPlayer.Stop();
@@ -39,7 +39,7 @@ namespace MapAssist.Helpers
         public static SoundPlayer GetSoundPlayer(string soundFile)
         {
             if (string.IsNullOrEmpty(soundFile)) return null;
-            if (soundPlayers.TryGetValue(soundFile, out var soundPlayer)) return soundPlayer;
+            if (soundPlayers.TryGetValue(soundFile, out SoundPlayer soundPlayer)) return soundPlayer;
 
             var directory = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
             var soundPath = Path.Combine(directory, "Sounds", soundFile);
@@ -63,7 +63,7 @@ namespace MapAssist.Helpers
 
         public static void Dispose()
         {
-            foreach (var soundPlayer in soundPlayers.Values)
+            foreach (SoundPlayer soundPlayer in soundPlayers.Values)
             {
                 soundPlayer.Dispose();
             }

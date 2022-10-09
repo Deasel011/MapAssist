@@ -28,7 +28,7 @@ namespace MapAssist.Types
 
             if (IsValidUnit && MapAssistConfiguration.Loaded.ItemLog.Enabled)
             {
-                using (var processContext = GameManager.GetProcessContext())
+                using (ProcessContext processContext = GameManager.GetProcessContext())
                 {
                     ItemData = processContext.Read<ItemData>(Struct.pUnitData);
                     MappedItemQuality = GetMappedItemQuality();

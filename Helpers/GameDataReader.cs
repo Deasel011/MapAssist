@@ -13,7 +13,7 @@ namespace MapAssist.Helpers
 
         public (GameData, AreaData, bool) Get()
         {
-            var gameData = GameMemory.GetGameData();
+            GameData gameData = GameMemory.GetGameData();
             var changed = false;
 
             if (gameData != null)
@@ -65,13 +65,13 @@ namespace MapAssist.Helpers
         {
             if (_gameData == null || _areaData == null) return;
 
-            foreach (var gameObject in _gameData.Objects)
+            foreach (UnitObject gameObject in _gameData.Objects)
             {
                 if (!_areaData.IncludesPoint(gameObject.Position)) continue;
 
                 if (gameObject.IsShrine || gameObject.IsWell)
                 {
-                    var existingPoint = _areaData.PointsOfInterest.FirstOrDefault(x => x.Position == gameObject.Position);
+                    PointOfInterest existingPoint = _areaData.PointsOfInterest.FirstOrDefault(x => x.Position == gameObject.Position);
 
                     if (existingPoint != null)
                     {

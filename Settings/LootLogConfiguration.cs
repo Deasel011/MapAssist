@@ -3,6 +3,7 @@ using MapAssist.Types;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using YamlDotNet.Serialization;
 
 namespace MapAssist.Settings
@@ -19,16 +20,16 @@ namespace MapAssist.Settings
 
             _log.Info($"Parsed {Filters.Count()} item filter entries in {MapAssistConfiguration.Loaded.ItemLog.FilterFileName}");
 
-            for (var itemClass = Item.ClassAxes; ; itemClass += 1)
+            for (Item itemClass = Item.ClassAxes; ; itemClass += 1)
             {
                 if (!Enum.IsDefined(typeof(Item), itemClass)) break;
                 if (!Filters.ContainsKey(itemClass)) continue;
 
                 Action<ItemFilter> assignRule = (rule) =>
                 {
-                    var classItems = Items.ItemClasses[itemClass].Where(item => itemClass == Item.ClassCirclets || rule == null || rule.Tiers == null || rule.Tiers.Contains(Items.GetItemTier(item))).ToArray();
+                    Item[] classItems = Items.ItemClasses[itemClass].Where(item => itemClass == Item.ClassCirclets || rule == null || rule.Tiers == null || rule.Tiers.Contains(Items.GetItemTier(item))).ToArray();
 
-                    foreach (var item in classItems)
+                    foreach (Item item in classItems)
                     {
                         if (Filters.ContainsKey(item) && Filters[item] == null) continue; // null rule so everything is already being returned
 
@@ -51,7 +52,7 @@ namespace MapAssist.Settings
                 }
                 else
                 {
-                    foreach (var rule in Filters[itemClass].ToArray())
+                    foreach (ItemFilter rule in Filters[itemClass].ToArray())
                     {
                         assignRule(rule);
                     }
@@ -260,11 +261,11 @@ namespace MapAssist.Settings
 
         public bool TargetsUnidItem()
         {
-            foreach (var property in GetType().GetProperties())
+            foreach (PropertyInfo property in GetType().GetProperties())
             {
                 if (property.Name == "Defense") continue;
 
-                var propType = property.PropertyType;
+                Type propType = property.PropertyType;
                 if (propType == typeof(object)) continue;
 
                 var propertyValue = GetType().GetProperty(property.Name).GetValue(this, null);

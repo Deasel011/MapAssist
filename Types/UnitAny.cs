@@ -40,7 +40,7 @@ namespace MapAssist.Types
 
             if (IsValidPointer)
             {
-                using (var processContext = GameManager.GetProcessContext())
+                using (ProcessContext processContext = GameManager.GetProcessContext())
                 {
                     Struct = processContext.Read<Structs.UnitAny>(PtrUnit);
                     Path = new Path(Struct.pPath);
@@ -61,9 +61,9 @@ namespace MapAssist.Types
         {
             if (IsValidPointer)
             {
-                using (var processContext = GameManager.GetProcessContext())
+                using (ProcessContext processContext = GameManager.GetProcessContext())
                 {
-                    var newStruct = processContext.Read<Structs.UnitAny>(PtrUnit);
+                    Structs.UnitAny newStruct = processContext.Read<Structs.UnitAny>(PtrUnit);
 
                     if (newStruct.UnitId == uint.MaxValue) return UpdateResult.InvalidUpdate;
                     else Struct = newStruct;
@@ -84,14 +84,14 @@ namespace MapAssist.Types
 
                             if (UnitType == UnitType.Item)
                             {
-                                var addedStatsStruct = GetAddedStatsListPtr();
+                                StatListExStruct? addedStatsStruct = GetAddedStatsListPtr();
                                 if (addedStatsStruct.HasValue)
                                 {
                                     (StatsAdded, StatLayersAdded) = ReadStats(addedStatsStruct.Value.BaseStats.Stats);
 
                                     if (addedStatsStruct.Value.pPrevLink != IntPtr.Zero)
                                     {
-                                        var staffModsStruct = processContext.Read<StatListExStruct>(addedStatsStruct.Value.pPrevLink);
+                                        StatListExStruct staffModsStruct = processContext.Read<StatListExStruct>(addedStatsStruct.Value.pPrevLink);
                                         (StaffMods, StaffModsLayers) = ReadStats(staffModsStruct.BaseStats.Stats);
                                     }
                                 }
@@ -110,14 +110,14 @@ namespace MapAssist.Types
 
         protected (Dictionary<Stats.Stat, int>, Dictionary<Stats.Stat, Dictionary<ushort, int>>) ReadStats(StatArrayStruct statArray)
         {
-            using (var processContext = GameManager.GetProcessContext())
+            using (ProcessContext processContext = GameManager.GetProcessContext())
             {
                 var stats = new Dictionary<Stats.Stat, int>();
                 var statLayers = new Dictionary<Stats.Stat, Dictionary<ushort, int>>();
 
-                var statValues = processContext.Read<StatValue>(statArray.pFirstStat, Convert.ToInt32(statArray.Size));
+                StatValue[] statValues = processContext.Read<StatValue>(statArray.pFirstStat, Convert.ToInt32(statArray.Size));
 
-                foreach (var stat in statValues)
+                foreach (StatValue stat in statValues)
                 {
                     if (statLayers.ContainsKey(stat.Stat))
                     {
@@ -153,7 +153,7 @@ namespace MapAssist.Types
 
         protected StatListExStruct? GetAddedStatsListPtr(int flags = 0x40)
         {
-            using (var processContext = GameManager.GetProcessContext())
+            using (ProcessContext processContext = GameManager.GetProcessContext())
             {
                 if ((StatsStruct.BaseStats.Flags & 0x80000000) == 0)
                 {
@@ -181,7 +181,7 @@ namespace MapAssist.Types
 
                     if (StatsStruct.pPrevLink != IntPtr.Zero)
                     {
-                        var addressToRead = statList.pPrevLink;
+                        IntPtr addressToRead = statList.pPrevLink;
 
                         statList = processContext.Read<StatListExStruct>(addressToRead);
 

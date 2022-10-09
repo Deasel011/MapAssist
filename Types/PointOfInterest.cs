@@ -17,7 +17,7 @@ namespace MapAssist.Types
         {
             if (Type == PoiType.AreaPortal)
             {
-                foreach (var gameObject in gameDataObjectList)
+                foreach (UnitObject gameObject in gameDataObjectList)
                 {
                     if (gameObject.IsPortal)
                     {

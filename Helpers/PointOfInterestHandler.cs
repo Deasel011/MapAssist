@@ -166,7 +166,7 @@ namespace MapAssist.Helpers
                             Area.TalRashasTomb1, Area.TalRashasTomb2, Area.TalRashasTomb3, Area.TalRashasTomb4,
                             Area.TalRashasTomb5, Area.TalRashasTomb6, Area.TalRashasTomb7
                         };
-                        var realTomb = tombs.FirstOrDefault(x => mapApi.GetMapData(x).Objects.ContainsKey(GameObject.HoradricOrifice));
+                        Area realTomb = tombs.FirstOrDefault(x => mapApi.GetMapData(x).Objects.ContainsKey(GameObject.HoradricOrifice));
 
                         if (realTomb != Area.None && areaData.AdjacentLevels[realTomb].Exits.Any())
                         {
@@ -184,10 +184,10 @@ namespace MapAssist.Helpers
                         break;
 
                     case Area.TamoeHighland:
-                        var monastery = areaData.AdjacentLevels.First(level => level.Key == Area.MonasteryGate).Value;
+                        AdjacentLevel monastery = areaData.AdjacentLevels.First(level => level.Key == Area.MonasteryGate).Value;
 
-                        var monasteryArea = mapApi.GetMapData(Area.MonasteryGate);
-                        var outerCloister = monasteryArea.AdjacentLevels.First(level => level.Key == Area.OuterCloister).Value;
+                        AreaData monasteryArea = mapApi.GetMapData(Area.MonasteryGate);
+                        AdjacentLevel outerCloister = monasteryArea.AdjacentLevels.First(level => level.Key == Area.OuterCloister).Value;
 
                         pointsOfInterest.Add(new PointOfInterest
                         {
@@ -203,7 +203,7 @@ namespace MapAssist.Helpers
 
                     case Area.OuterCloister:
                         // Barracks Door is based on waypoint position
-                        var waypoint = areaData.Objects.First(obj => obj.Key == GameObject.WaypointPortal).Value.First();
+                        Point waypoint = areaData.Objects.First(obj => obj.Key == GameObject.WaypointPortal).Value.First();
                         var poiPosition = new Point();
                         switch (waypoint.X)
                         {
@@ -253,7 +253,7 @@ namespace MapAssist.Helpers
 
                     case Area.SpiderForest:
                         {
-                            if (areaData.AdjacentLevels.TryGetValue(Area.FlayerJungle, out var flayerJungleLevel))
+                            if (areaData.AdjacentLevels.TryGetValue(Area.FlayerJungle, out AdjacentLevel flayerJungleLevel))
                             {
                                 pointsOfInterest.Add(new PointOfInterest
                                 {
@@ -266,7 +266,7 @@ namespace MapAssist.Helpers
                                 });
                                 areaRenderDecided.Add(Area.FlayerJungle);
                             }
-                            else if (areaData.AdjacentLevels.TryGetValue(Area.GreatMarsh, out var greatMarshLevel))
+                            else if (areaData.AdjacentLevels.TryGetValue(Area.GreatMarsh, out AdjacentLevel greatMarshLevel))
                             {
                                 pointsOfInterest.Add(new PointOfInterest
                                 {
@@ -284,7 +284,7 @@ namespace MapAssist.Helpers
 
                     case Area.GreatMarsh:
                         {
-                            if (areaData.AdjacentLevels.TryGetValue(Area.FlayerJungle, out var flayerJungleLevel))
+                            if (areaData.AdjacentLevels.TryGetValue(Area.FlayerJungle, out AdjacentLevel flayerJungleLevel))
                             {
                                 pointsOfInterest.Add(new PointOfInterest
                                 {
@@ -301,9 +301,9 @@ namespace MapAssist.Helpers
                         break;
 
                     default:
-                        if (AreaPreferredNextArea.TryGetValue(areaData.Area, out var nextArea))
+                        if (AreaPreferredNextArea.TryGetValue(areaData.Area, out Area nextArea))
                         {
-                            var nextLevel = areaData.AdjacentLevels[nextArea];
+                            AdjacentLevel nextLevel = areaData.AdjacentLevels[nextArea];
                             if (nextLevel.Exits.Any())
                             {
                                 pointsOfInterest.Add(new PointOfInterest
@@ -320,10 +320,10 @@ namespace MapAssist.Helpers
                         }
                         else
                         {
-                            var maxAdjacentArea = areaData.AdjacentLevels.Keys.Max();
+                            Area maxAdjacentArea = areaData.AdjacentLevels.Keys.Max();
                             if (maxAdjacentArea > areaData.Area)
                             {
-                                var nextLevel = areaData.AdjacentLevels[maxAdjacentArea];
+                                AdjacentLevel nextLevel = areaData.AdjacentLevels[maxAdjacentArea];
                                 if (nextLevel.Exits.Any())
                                 {
                                     pointsOfInterest.Add(new PointOfInterest
@@ -343,11 +343,11 @@ namespace MapAssist.Helpers
                 }
 
                 // Quest Area Point of Interest
-                if (AreaPreferredQuestArea.TryGetValue(areaData.Area, out var questAreas))
+                if (AreaPreferredQuestArea.TryGetValue(areaData.Area, out Area[] questAreas))
                 {
-                    foreach (var questArea in questAreas)
+                    foreach (Area questArea in questAreas)
                     {
-                        var questLevel = areaData.AdjacentLevels[questArea];
+                        AdjacentLevel questLevel = areaData.AdjacentLevels[questArea];
                         if (questLevel.Exits.Any())
                         {
                             pointsOfInterest.Add(new PointOfInterest
@@ -368,8 +368,8 @@ namespace MapAssist.Helpers
                 switch (areaData.Area)
                 {
                     case Area.MonasteryGate:
-                        var outerCloister = areaData.AdjacentLevels.First(level => level.Key == Area.OuterCloister).Value;
-                        var tamoe = areaData.AdjacentLevels.First(level => level.Key == Area.TamoeHighland).Value;
+                        AdjacentLevel outerCloister = areaData.AdjacentLevels.First(level => level.Key == Area.OuterCloister).Value;
+                        AdjacentLevel tamoe = areaData.AdjacentLevels.First(level => level.Key == Area.TamoeHighland).Value;
 
                         pointsOfInterest.Add(new PointOfInterest
                         {
@@ -383,9 +383,9 @@ namespace MapAssist.Helpers
                         break;
 
                     case Area.Barracks:
-                        var outerCloisterArea = mapApi.GetMapData(Area.OuterCloister);
-                        var barracksAreaData = Get(mapApi, outerCloisterArea, gameData);
-                        var barracks = barracksAreaData.FirstOrDefault(poi => poi.Type == PoiType.NextArea);
+                        AreaData outerCloisterArea = mapApi.GetMapData(Area.OuterCloister);
+                        List<PointOfInterest> barracksAreaData = Get(mapApi, outerCloisterArea, gameData);
+                        PointOfInterest barracks = barracksAreaData.FirstOrDefault(poi => poi.Type == PoiType.NextArea);
 
                         pointsOfInterest.Add(new PointOfInterest
                         {
@@ -399,9 +399,9 @@ namespace MapAssist.Helpers
                         break;
 
                     case Area.Cathedral:
-                        var innerCloisterArea = mapApi.GetMapData(Area.InnerCloister);
-                        var cathedralAreaData = Get(mapApi, innerCloisterArea, gameData);
-                        var cathedral = cathedralAreaData.FirstOrDefault(poi => poi.Type == PoiType.NextArea);
+                        AreaData innerCloisterArea = mapApi.GetMapData(Area.InnerCloister);
+                        List<PointOfInterest> cathedralAreaData = Get(mapApi, innerCloisterArea, gameData);
+                        PointOfInterest cathedral = cathedralAreaData.FirstOrDefault(poi => poi.Type == PoiType.NextArea);
 
                         pointsOfInterest.Add(new PointOfInterest
                         {
@@ -415,7 +415,7 @@ namespace MapAssist.Helpers
                         break;
 
                     default:
-                        foreach (var level in areaData.AdjacentLevels.Values)
+                        foreach (AdjacentLevel level in areaData.AdjacentLevels.Values)
                         {
                             // Already made render decision for this.
                             if (areaRenderDecided.Contains(level.Area))
@@ -423,7 +423,7 @@ namespace MapAssist.Helpers
                                 continue;
                             }
 
-                            foreach (var position in level.Exits)
+                            foreach (Point position in level.Exits)
                             {
                                 pointsOfInterest.Add(new PointOfInterest
                                 {
@@ -440,7 +440,7 @@ namespace MapAssist.Helpers
                 }
             }
 
-            foreach (var objAndPoints in areaData.Objects)
+            foreach (KeyValuePair<GameObject, Point[]> objAndPoints in areaData.Objects)
             {
                 GameObject obj = objAndPoints.Key;
                 Point[] points = objAndPoints.Value;
@@ -497,10 +497,10 @@ namespace MapAssist.Helpers
                 // Quest objects
                 else if (QuestObjects.TryGetValue(obj, out var questObjectName))
                 {
-                    var usePoints = obj == GameObject.CagedWussie ? points : // Mark all 3 sets of prisoners in Frigid Highlands as quest destinations
+                    Point[] usePoints = obj == GameObject.CagedWussie ? points : // Mark all 3 sets of prisoners in Frigid Highlands as quest destinations
                         new Point[] { points[0] };
 
-                    foreach (var point in usePoints)
+                    foreach (Point point in usePoints)
                     {
                         pointsOfInterest.Add(new PointOfInterest
                         {
@@ -514,7 +514,7 @@ namespace MapAssist.Helpers
                 // Shrines
                 else if (Shrines.Contains(obj))
                 {
-                    foreach (var point in points)
+                    foreach (Point point in points)
                     {
                         pointsOfInterest.Add(new PointOfInterest
                         {
@@ -529,7 +529,7 @@ namespace MapAssist.Helpers
                 // Super Chest
                 else if (Chest.SuperChests.Contains(obj))
                 {
-                    foreach (var point in points)
+                    foreach (Point point in points)
                     {
                         pointsOfInterest.Add(new PointOfInterest
                         {
@@ -543,7 +543,7 @@ namespace MapAssist.Helpers
                 }
                 else if (Doors.Contains(obj))
                 {
-                    foreach (var point in points)
+                    foreach (Point point in points)
                     {
                         pointsOfInterest.Add(new PointOfInterest
                         {
@@ -560,7 +560,7 @@ namespace MapAssist.Helpers
             switch (areaData.Area)
             {
                 case Area.PlainsOfDespair:
-                    foreach (var objAndPoints in areaData.NPCs)
+                    foreach (KeyValuePair<Npc, Point[]> objAndPoints in areaData.NPCs)
                     {
                         pointsOfInterest.Add(new PointOfInterest
                         {

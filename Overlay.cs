@@ -50,7 +50,7 @@ namespace MapAssist
             if (!frameDone) return;
             frameDone = false;
 
-            var gfx = e.Graphics;
+            Graphics gfx = e.Graphics;
 
             try
             {
@@ -61,7 +61,7 @@ namespace MapAssist
                         return (MapAssistConfiguration.Loaded.RenderingConfiguration.Position, MapAssistConfiguration.Loaded.RenderingConfiguration.OverlayMode);
                     }
 
-                    var (gameData, areaData, changed) = _gameDataReader.Get();
+                    (GameData gameData, AreaData areaData, var changed) = _gameDataReader.Get();
                     _gameData = gameData;
 
                     if (changed || _lastMapConfiguration != MapConfiguration())
@@ -120,10 +120,10 @@ namespace MapAssist
 
                             _compositor.DrawPlayerInfo(gfx);
 
-                            var gameInfoAnchor = GameInfoAnchor(MapAssistConfiguration.Loaded.GameInfo.Position);
-                            var nextAnchor = _compositor.DrawGameInfo(gfx, gameInfoAnchor, e, errorLoadingAreaData);
+                            Point gameInfoAnchor = GameInfoAnchor(MapAssistConfiguration.Loaded.GameInfo.Position);
+                            Point nextAnchor = _compositor.DrawGameInfo(gfx, gameInfoAnchor, e, errorLoadingAreaData);
 
-                            var itemLogAnchor = (MapAssistConfiguration.Loaded.ItemLog.Position == MapAssistConfiguration.Loaded.GameInfo.Position)
+                            Point itemLogAnchor = (MapAssistConfiguration.Loaded.ItemLog.Position == MapAssistConfiguration.Loaded.GameInfo.Position)
                                 ? nextAnchor.Add(0, GameInfoPadding())
                                 : GameInfoAnchor(MapAssistConfiguration.Loaded.ItemLog.Position);
                             _compositor.DrawItemLog(gfx, itemLogAnchor);
@@ -181,7 +181,7 @@ namespace MapAssist
                     {
                         MapAssistConfiguration.Loaded.RenderingConfiguration.Offset = new Point(0, 0);
 
-                        var position = MapAssistConfiguration.Loaded.RenderingConfiguration.Position;
+                        MapPosition position = MapAssistConfiguration.Loaded.RenderingConfiguration.Position;
                         MapAssistConfiguration.Loaded.RenderingConfiguration.Position = Enum.GetValues(typeof(MapPosition))
                             .Cast<MapPosition>().Concat(new[] { default(MapPosition) })
                             .SkipWhile(e => !position.Equals(e)).Skip(1).First();
@@ -252,7 +252,7 @@ namespace MapAssist
         /// </summary>
         private void UpdateLocation()
         {
-            var rect = WindowRect();
+            Rectangle rect = WindowRect();
             var ultraWideMargin = UltraWideMargin();
 
             _window.Resize((int)(rect.Left + ultraWideMargin), (int)rect.Top, (int)(rect.Right - rect.Left - ultraWideMargin * 2), (int)(rect.Bottom - rect.Top));
@@ -269,19 +269,19 @@ namespace MapAssist
 
         private float UltraWideMargin()
         {
-            var rect = WindowRect();
+            Rectangle rect = WindowRect();
             return (float)Math.Max(Math.Round(((rect.Width + 2) - (rect.Height + 4) * 2.1f) / 2f), 0);
         }
 
         private float PlayerIconWidth()
         {
-            var rect = WindowRect();
+            Rectangle rect = WindowRect();
             return rect.Height / 20f;
         }
 
         private float GameInfoPadding()
         {
-            var rect = WindowRect();
+            Rectangle rect = WindowRect();
             return rect.Height / 100f;
         }
 

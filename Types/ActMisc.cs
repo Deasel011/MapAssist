@@ -17,7 +17,7 @@ namespace MapAssist.Types
 
         public ActMisc Update()
         {
-            using (var processContext = GameManager.GetProcessContext())
+            using (ProcessContext processContext = GameManager.GetProcessContext())
             {
                 _actMisc = processContext.Read<Structs.ActMisc>(_pActMisc);
             }

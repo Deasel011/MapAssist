@@ -170,7 +170,7 @@ namespace MapAssist.Helpers
 
         public static UnitHashTable UnitHashTable(int offset = 0)
         {
-            using (var processContext = GetProcessContext())
+            using (ProcessContext processContext = GetProcessContext())
             {
                 var pid = processContext.ProcessId;
 
@@ -292,7 +292,7 @@ namespace MapAssist.Helpers
         {
             // The fact we are here means we are missing some offset,
             // which means we will need the buffer.
-            using (var processContext = GetProcessContext())
+            using (ProcessContext processContext = GetProcessContext())
             {
                 var pid = processContext.ProcessId;
                 var buffer = processContext.Read<byte>(processContext.BaseAddr, processContext.ModuleSize);

@@ -1,8 +1,13 @@
 using MapAssist.Settings;
+using MapAssist.Structs;
 using MapAssist.Types;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Item = MapAssist.Types.Item;
+using MapSeed = MapAssist.Types.MapSeed;
+using Session = MapAssist.Types.Session;
+using UnitAny = MapAssist.Types.UnitAny;
 
 namespace MapAssist.Helpers
 {
@@ -29,7 +34,7 @@ namespace MapAssist.Helpers
                 return null;
             }
 
-            var processContext = GameManager.GetProcessContext();
+            ProcessContext processContext = GameManager.GetProcessContext();
 
             if (processContext == null)
             {
@@ -39,10 +44,10 @@ namespace MapAssist.Helpers
             using (processContext)
             {
                 _currentProcessId = processContext.ProcessId;
-                var currentWindowHandle = GameManager.MainWindowHandle;
+                IntPtr currentWindowHandle = GameManager.MainWindowHandle;
 
-                var menuData = processContext.Read<Structs.MenuData>(GameManager.MenuDataOffset);
-                var lastHoverData = processContext.Read<Structs.HoverData>(GameManager.LastHoverDataOffset);
+                MenuData menuData = processContext.Read<Structs.MenuData>(GameManager.MenuDataOffset);
+                HoverData lastHoverData = processContext.Read<Structs.HoverData>(GameManager.LastHoverDataOffset);
                 var lastNpcInteracted = (Npc)processContext.Read<ushort>(GameManager.InteractedNpcOffset);
                 var rosterData = new Roster(GameManager.RosterDataOffset);
                 var pets = new Pets(GameManager.PetsOffset);
@@ -77,8 +82,8 @@ namespace MapAssist.Helpers
                     _sessions.Add(_currentProcessId, new Session(GameManager.GameNameOffset));
                 }
 
-                var rawPlayerUnits = GetUnits<UnitPlayer>(UnitType.Player).Select(x => x.Update()).Where(x => x != null).ToArray();
-                var playerUnit = rawPlayerUnits.FirstOrDefault(x => x.IsPlayer && x.IsPlayerUnit);
+                UnitPlayer[] rawPlayerUnits = GetUnits<UnitPlayer>(UnitType.Player).Select(x => x.Update()).Where(x => x != null).ToArray();
+                UnitPlayer playerUnit = rawPlayerUnits.FirstOrDefault(x => x.IsPlayer && x.IsPlayerUnit);
 
                 if (playerUnit == null)
                 {
@@ -96,7 +101,7 @@ namespace MapAssist.Helpers
                     .OrderBy(o => o.Struct.UnkSortStashesBy)
                     .Select(o => o.UnitId).ToList();
 
-                var levelId = playerUnit.Area;
+                Area levelId = playerUnit.Area;
 
                 if (!levelId.IsValid())
                 {
@@ -106,14 +111,14 @@ namespace MapAssist.Helpers
                     throw new Exception("Level id out of bounds.");
                 }
 
-                if (!MapSeeds.TryGetValue(_currentProcessId, out var _mapSeedData))
+                if (!MapSeeds.TryGetValue(_currentProcessId, out MapSeed _mapSeedData))
                 {
                     _mapSeedData = new MapSeed();
                     MapSeeds[_currentProcessId] = _mapSeedData;
                 }
 
                 // Update area timer
-                var areaCacheFound = _playerArea.TryGetValue(_currentProcessId, out var previousArea);
+                var areaCacheFound = _playerArea.TryGetValue(_currentProcessId, out Area previousArea);
                 if (!areaCacheFound || previousArea != levelId)
                 {
                     if (areaCacheFound)
@@ -158,7 +163,7 @@ namespace MapAssist.Helpers
                 }
 
                 // Extra checks on game details
-                var gameDifficulty = playerUnit.Act.ActMisc.GameDifficulty;
+                Difficulty gameDifficulty = playerUnit.Act.ActMisc.GameDifficulty;
 
                 if (!gameDifficulty.IsValid())
                 {
@@ -176,14 +181,14 @@ namespace MapAssist.Helpers
                     .Where(x => x != null && x.UnitId < uint.MaxValue).ToDictionary(x => x.UnitId, x => x);
 
                 // Roster
-                foreach (var entry in rosterData.List)
+                foreach (RosterEntry entry in rosterData.List)
                 {
                     entry.UpdateParties(playerUnit.RosterEntry);
                 }
 
                 // Corpses
-                var corpseList = rawPlayerUnits.Where(x => x.UnitType == UnitType.Player && x.IsCorpse).Concat(Corpses[_currentProcessId].Values).Distinct().ToArray();
-                foreach (var corpse in corpseList)
+                UnitPlayer[] corpseList = rawPlayerUnits.Where(x => x.UnitType == UnitType.Player && x.IsCorpse).Concat(Corpses[_currentProcessId].Values).Distinct().ToArray();
+                foreach (UnitPlayer corpse in corpseList)
                 {
                     var containsKey = Corpses[_currentProcessId].ContainsKey(corpse.HashString);
 
@@ -198,15 +203,15 @@ namespace MapAssist.Helpers
                 }
 
                 // Monsters
-                var rawMonsterUnits = GetUnits<UnitMonster>(UnitType.Monster)
+                UnitMonster[] rawMonsterUnits = GetUnits<UnitMonster>(UnitType.Monster)
                     .Select(x => x.Update()).ToArray()
                     .Where(x => x != null && x.UnitId < uint.MaxValue).ToArray();
 
-                var monsterList = rawMonsterUnits.Where(x => x.UnitType == UnitType.Monster && x.IsMonster).ToArray();
+                UnitMonster[] monsterList = rawMonsterUnits.Where(x => x.UnitType == UnitType.Monster && x.IsMonster).ToArray();
 
-                foreach (var petEntry in pets.List)
+                foreach (PetEntry petEntry in pets.List)
                 {
-                    var pet = rawMonsterUnits.FirstOrDefault(x => x.UnitId == petEntry.UnitId);
+                    UnitMonster pet = rawMonsterUnits.FirstOrDefault(x => x.UnitId == petEntry.UnitId);
 
                     if (pet != null)
                     {
@@ -215,31 +220,31 @@ namespace MapAssist.Helpers
                     }
                 }
 
-                var mercList = rawMonsterUnits.Where(x => x.IsMerc).ToArray();
-                var summonsList = rawMonsterUnits.Where(x => x.IsSummon).ToArray();
+                UnitMonster[] mercList = rawMonsterUnits.Where(x => x.IsMerc).ToArray();
+                UnitMonster[] summonsList = rawMonsterUnits.Where(x => x.IsSummon).ToArray();
 
                 // Objects
-                var rawObjectUnits = GetUnits<UnitObject>(UnitType.Object, true);
-                foreach (var obj in rawObjectUnits)
+                UnitObject[] rawObjectUnits = GetUnits<UnitObject>(UnitType.Object, true);
+                foreach (UnitObject obj in rawObjectUnits)
                 {
                     obj.Update();
                 }
-                var objectList = rawObjectUnits.Where(x => x != null && x.UnitType == UnitType.Object && x.UnitId < uint.MaxValue).ToArray();
+                UnitObject[] objectList = rawObjectUnits.Where(x => x != null && x.UnitType == UnitType.Object && x.UnitId < uint.MaxValue).ToArray();
 
                 // Missiles
                 // enemy missiles
-                var rawMissileUnits = GetUnits<UnitMissile>(UnitType.Missile, false);
-                var clientMissileList = rawMissileUnits.Where(x => x != null && x.UnitType == UnitType.Missile && x.UnitId < uint.MaxValue).ToArray();
+                UnitMissile[] rawMissileUnits = GetUnits<UnitMissile>(UnitType.Missile, false);
+                UnitMissile[] clientMissileList = rawMissileUnits.Where(x => x != null && x.UnitType == UnitType.Missile && x.UnitId < uint.MaxValue).ToArray();
 
                 // player missiles
-                var rawServerMissileUnits = GetUnits<UnitMissile>(UnitType.ServerMissile, false);
-                var serverMissileList = rawServerMissileUnits.Where(x => x != null && x.UnitType == UnitType.Missile && x.UnitId < uint.MaxValue).ToArray();
-                var missileList = clientMissileList.Concat(serverMissileList).ToArray();
+                UnitMissile[] rawServerMissileUnits = GetUnits<UnitMissile>(UnitType.ServerMissile, false);
+                UnitMissile[] serverMissileList = rawServerMissileUnits.Where(x => x != null && x.UnitType == UnitType.Missile && x.UnitId < uint.MaxValue).ToArray();
+                UnitMissile[] missileList = clientMissileList.Concat(serverMissileList).ToArray();
 
                 // Items
-                var allItems = GetUnits<UnitItem>(UnitType.Item, true).Where(x => x.UnitId < uint.MaxValue).ToArray();
+                UnitItem[] allItems = GetUnits<UnitItem>(UnitType.Item, true).Where(x => x.UnitId < uint.MaxValue).ToArray();
                 var rawItemUnits = new List<UnitItem>();
-                foreach (var item in allItems)
+                foreach (UnitItem item in allItems)
                 {
                     if (item.IsPlayerOwned && item.IsIdentified && !Items.InventoryItemUnitIdsToSkip[_currentProcessId].Contains(item.UnitId))
                     {
@@ -282,7 +287,7 @@ namespace MapAssist.Helpers
 
                     if (item.IsInStore)
                     {
-                        if (Items.ItemVendors[_currentProcessId].TryGetValue(item.UnitId, out var vendor))
+                        if (Items.ItemVendors[_currentProcessId].TryGetValue(item.UnitId, out Npc vendor))
                         {
                             item.VendorOwner = vendor;
                         }
@@ -308,7 +313,7 @@ namespace MapAssist.Helpers
                     rawItemUnits.Add(item);
                 }
 
-                var itemList = Items.ItemLog[_currentProcessId].Select(item =>
+                UnitItem[] itemList = Items.ItemLog[_currentProcessId].Select(item =>
                 {
                     if (cache.TryGetValue(item.ItemHashString, out var cachedItem) && ((UnitItem)cachedItem).HashString == item.ItemHashString)
                     {
@@ -327,8 +332,8 @@ namespace MapAssist.Helpers
                 playerUnit.WearingItems = allItems.Where(x => x.IsPlayerOwned && x.ItemModeMapped == ItemModeMapped.Player).ToArray();
 
                 // Belt items
-                var belt = allItems.FirstOrDefault(x => x.IsPlayerOwned && x.ItemModeMapped == ItemModeMapped.Player && x.ItemData.BodyLoc == BodyLoc.BELT);
-                var beltItems = allItems.Where(x => rosterData.List[0].UnitId != uint.MaxValue && x.ItemModeMapped == ItemModeMapped.Belt).ToArray();
+                UnitItem belt = allItems.FirstOrDefault(x => x.IsPlayerOwned && x.ItemModeMapped == ItemModeMapped.Player && x.ItemData.BodyLoc == BodyLoc.BELT);
+                UnitItem[] beltItems = allItems.Where(x => rosterData.List[0].UnitId != uint.MaxValue && x.ItemModeMapped == ItemModeMapped.Belt).ToArray();
 
                 var beltSize = belt == null ? 1 :
                     new Item[] { Item.Sash, Item.LightBelt }.Contains(belt.Item) ? 2 :
@@ -337,14 +342,14 @@ namespace MapAssist.Helpers
                 playerUnit.BeltItems = Enumerable.Range(0, 4).Select(i => Enumerable.Range(0, beltSize).Select(j => beltItems.FirstOrDefault(item => item.X == i + j * 4)).ToArray()).ToArray();
 
                 // Unit hover
-                var allUnits = ((UnitAny[])playerList.Values.ToArray()).Concat(monsterList).Concat(mercList).Concat(rawObjectUnits).Concat(rawItemUnits);
+                IEnumerable<UnitAny> allUnits = ((UnitAny[])playerList.Values.ToArray()).Concat(monsterList).Concat(mercList).Concat(rawObjectUnits).Concat(rawItemUnits);
 
-                var hoveredUnits = allUnits.Where(x => x.IsHovered).ToArray();
+                UnitAny[] hoveredUnits = allUnits.Where(x => x.IsHovered).ToArray();
                 if (hoveredUnits.Length > 0) hoveredUnits[0].IsHovered = false;
 
                 if (lastHoverData.IsHovered)
                 {
-                    var units = allUnits.Where(x => x.UnitId == lastHoverData.UnitId && x.UnitType == lastHoverData.UnitType).ToArray();
+                    UnitAny[] units = allUnits.Where(x => x.UnitId == lastHoverData.UnitId && x.UnitType == lastHoverData.UnitType).ToArray();
                     if (units.Length > 0) units[0].IsHovered = true;
                 }
 
@@ -389,20 +394,20 @@ namespace MapAssist.Helpers
             }
         }
 
-        public static UnitPlayer PlayerUnit => PlayerUnits.TryGetValue(_currentProcessId, out var player) ? player : null;
+        public static UnitPlayer PlayerUnit => PlayerUnits.TryGetValue(_currentProcessId, out UnitPlayer player) ? player : null;
 
         private static T[] GetUnits<T>(UnitType unitType, bool saveToCache = false) where T : UnitAny
         {
             var allUnits = new Dictionary<uint, T>();
             Func<IntPtr, T> CreateUnit = (ptr) => (T)Activator.CreateInstance(typeof(T), new object[] { ptr });
 
-            var unitHashTable = GameManager.UnitHashTable(128 * 8 * (int)unitType);
+            UnitHashTable unitHashTable = GameManager.UnitHashTable(128 * 8 * (int)unitType);
 
-            foreach (var ptrUnit in unitHashTable.UnitTable)
+            foreach (IntPtr ptrUnit in unitHashTable.UnitTable)
             {
                 if (ptrUnit == IntPtr.Zero) continue;
 
-                var unit = CreateUnit(ptrUnit);
+                T unit = CreateUnit(ptrUnit);
 
                 Action<object> UseCachedUnit = (seenUnit) =>
                 {

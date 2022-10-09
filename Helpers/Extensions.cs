@@ -115,7 +115,7 @@ namespace MapAssist.Helpers
         // System to GameOverlay type conversions
         public static Geometry ToGeometry(this Point[] points, Graphics gfx, bool fill)
         {
-            var geo = gfx.CreateGeometry();
+            Geometry geo = gfx.CreateGeometry();
 
             geo.BeginFigure(points[points.Length - 1], fill);
 
@@ -138,7 +138,7 @@ namespace MapAssist.Helpers
         // System to SharpDX type conversions
         public static Bitmap ToDXBitmap(this SystemBitmap bitmap, RenderTarget renderTarget)
         {
-            var bmpData = bitmap.LockBits(new SystemRectangle(0, 0, bitmap.Width, bitmap.Height), SystemImaging.ImageLockMode.ReadOnly, bitmap.PixelFormat);
+            SystemImaging.BitmapData bmpData = bitmap.LockBits(new SystemRectangle(0, 0, bitmap.Width, bitmap.Height), SystemImaging.ImageLockMode.ReadOnly, bitmap.PixelFormat);
             var numBytes = bmpData.Stride * bitmap.Height;
             var byteData = new byte[numBytes];
             IntPtr ptr = bmpData.Scan0;

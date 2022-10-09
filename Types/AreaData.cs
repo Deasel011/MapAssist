@@ -89,7 +89,7 @@ namespace MapAssist.Types
     
         public bool IncludesPoint(Point point)
         {
-            var adjPoint = point.Subtract(Origin);
+            Point adjPoint = point.Subtract(Origin);
             return adjPoint.X > 0 && 
                 adjPoint.Y > 0 && 
                 adjPoint.X < ViewInputRect.Width - MapPadding * 2 && 

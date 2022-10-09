@@ -27,8 +27,8 @@ namespace MapAssist
             formReady = false;
             InitializeComponent();
 
-            var propertyList = MapAssistConfiguration.Loaded.MapConfiguration.GetType().GetProperties();
-            foreach (var property in propertyList)
+            PropertyInfo[] propertyList = MapAssistConfiguration.Loaded.MapConfiguration.GetType().GetProperties();
+            foreach (PropertyInfo property in propertyList)
             {
                 cboRenderOption.Items.Add(property.Name.ToProperCase());
             }
@@ -203,7 +203,7 @@ namespace MapAssist
                 btnClearExpRangeColor.Visible = false;
             }
 
-            foreach (var area in MapAssistConfiguration.Loaded.HiddenAreas)
+            foreach (Area area in MapAssistConfiguration.Loaded.HiddenAreas)
             {
                 lstHidden.Items.Add(area.Name());
             }
@@ -600,10 +600,10 @@ namespace MapAssist
 
         private void btnIconColor_Click(object sender, EventArgs e)
         {
-            var (colorDlg, colorResult) = SelectColor(btnIconColor.BackColor);
+            (ColorDialog colorDlg, DialogResult colorResult) = SelectColor(btnIconColor.BackColor);
             if (colorResult == DialogResult.OK)
             {
-                var iconProp = SelectedProperty.PropertyType.GetProperty("IconColor");
+                PropertyInfo iconProp = SelectedProperty.PropertyType.GetProperty("IconColor");
                 iconProp.SetValue(SelectedProperty.GetValue(MapAssistConfiguration.Loaded.MapConfiguration, null), colorDlg.Color, null);
                 btnIconColor.BackColor = colorDlg.Color;
                 btnIconColor.ForeColor = ContrastTextColor(btnIconColor.BackColor);
@@ -614,7 +614,7 @@ namespace MapAssist
 
         private void btnClearFillColor_Click(object sender, EventArgs e)
         {
-            var iconProp = SelectedProperty.PropertyType.GetProperty("IconColor");
+            PropertyInfo iconProp = SelectedProperty.PropertyType.GetProperty("IconColor");
             iconProp.SetValue(SelectedProperty.GetValue(MapAssistConfiguration.Loaded.MapConfiguration, null), Color.Empty, null);
             btnIconColor.BackColor = Color.Empty;
             btnIconColor.ForeColor = ContrastTextColor(btnIconColor.BackColor);
@@ -624,10 +624,10 @@ namespace MapAssist
 
         private void btnIconOutlineColor_Click(object sender, EventArgs e)
         {
-            var (colorDlg, colorResult) = SelectColor(btnIconOutlineColor.BackColor);
+            (ColorDialog colorDlg, DialogResult colorResult) = SelectColor(btnIconOutlineColor.BackColor);
             if (colorResult == DialogResult.OK)
             {
-                var iconProp = SelectedProperty.PropertyType.GetProperty("IconOutlineColor");
+                PropertyInfo iconProp = SelectedProperty.PropertyType.GetProperty("IconOutlineColor");
                 iconProp.SetValue(SelectedProperty.GetValue(MapAssistConfiguration.Loaded.MapConfiguration, null), colorDlg.Color, null);
                 btnIconOutlineColor.BackColor = colorDlg.Color;
                 btnIconOutlineColor.ForeColor = ContrastTextColor(btnIconOutlineColor.BackColor);
@@ -638,7 +638,7 @@ namespace MapAssist
 
         private void btnClearOutlineColor_Click(object sender, EventArgs e)
         {
-            var iconOutlineProp = SelectedProperty.PropertyType.GetProperty("IconOutlineColor");
+            PropertyInfo iconOutlineProp = SelectedProperty.PropertyType.GetProperty("IconOutlineColor");
             iconOutlineProp.SetValue(SelectedProperty.GetValue(MapAssistConfiguration.Loaded.MapConfiguration, null), Color.Empty, null);
             btnIconOutlineColor.BackColor = Color.Empty;
             btnIconOutlineColor.ForeColor = ContrastTextColor(btnIconOutlineColor.BackColor);
@@ -648,27 +648,27 @@ namespace MapAssist
 
         private void cboIconShape_SelectedIndexChanged(object sender, EventArgs e)
         {
-            var iconProp = SelectedProperty.PropertyType.GetProperty("IconShape");
+            PropertyInfo iconProp = SelectedProperty.PropertyType.GetProperty("IconShape");
             iconProp.SetValue(SelectedProperty.GetValue(MapAssistConfiguration.Loaded.MapConfiguration, null), (MapPosition)cboIconShape.SelectedIndex, null);
         }
 
         private void iconSize_Scroll(object sender, EventArgs e)
         {
-            var iconProp = SelectedProperty.PropertyType.GetProperty("IconSize");
+            PropertyInfo iconProp = SelectedProperty.PropertyType.GetProperty("IconSize");
             iconProp.SetValue(SelectedProperty.GetValue(MapAssistConfiguration.Loaded.MapConfiguration, null), iconSize.Value, null);
             lblIconSizeValue.Text = iconSize.Value.ToString();
         }
 
         private void iconThickness_Scroll(object sender, EventArgs e)
         {
-            var iconProp = SelectedProperty.PropertyType.GetProperty("IconThickness");
+            PropertyInfo iconProp = SelectedProperty.PropertyType.GetProperty("IconThickness");
             iconProp.SetValue(SelectedProperty.GetValue(MapAssistConfiguration.Loaded.MapConfiguration, null), iconThickness.Value, null);
             lblIconThicknessValue.Text = iconThickness.Value.ToString();
         }
 
         private void iconOpacity_Scroll(object sender, EventArgs e)
         {
-            var iconProp = SelectedProperty.PropertyType.GetProperty("IconOpacity");
+            PropertyInfo iconProp = SelectedProperty.PropertyType.GetProperty("IconOpacity");
             if (iconOpacity.Value > 0)
             {
                 iconProp.SetValue(SelectedProperty.GetValue(MapAssistConfiguration.Loaded.MapConfiguration, null), (float)Math.Round(iconOpacity.Value * 5 / 100d, 2), null);
@@ -691,10 +691,10 @@ namespace MapAssist
 
         private void btnLabelColor_Click(object sender, EventArgs e)
         {
-            var (colorDlg, colorResult) = SelectColor(btnLabelColor.BackColor);
+            (ColorDialog colorDlg, DialogResult colorResult) = SelectColor(btnLabelColor.BackColor);
             if (colorResult == DialogResult.OK)
             {
-                var labelPropColor = SelectedProperty.PropertyType.GetProperty("LabelColor");
+                PropertyInfo labelPropColor = SelectedProperty.PropertyType.GetProperty("LabelColor");
                 labelPropColor.SetValue(SelectedProperty.GetValue(MapAssistConfiguration.Loaded.MapConfiguration, null), colorDlg.Color, null);
                 btnLabelColor.BackColor = colorDlg.Color;
                 btnLabelColor.ForeColor = ContrastTextColor(btnLabelColor.BackColor);
@@ -705,7 +705,7 @@ namespace MapAssist
 
         private void btnClearLabelColor_Click(object sender, EventArgs e)
         {
-            var labelPropColor = SelectedProperty.PropertyType.GetProperty("LabelColor");
+            PropertyInfo labelPropColor = SelectedProperty.PropertyType.GetProperty("LabelColor");
             labelPropColor.SetValue(SelectedProperty.GetValue(MapAssistConfiguration.Loaded.MapConfiguration, null), Color.Empty, null);
             btnLabelColor.BackColor = Color.Empty;
             btnLabelColor.ForeColor = ContrastTextColor(btnLabelColor.BackColor);
@@ -728,8 +728,8 @@ namespace MapAssist
             fontDlg.ShowEffects = false;
             if (fontDlg.ShowDialog() == DialogResult.OK)
             {
-                var labelPropFont = SelectedProperty.PropertyType.GetProperty("LabelFont");
-                var labelPropFontSize = SelectedProperty.PropertyType.GetProperty("LabelFontSize");
+                PropertyInfo labelPropFont = SelectedProperty.PropertyType.GetProperty("LabelFont");
+                PropertyInfo labelPropFontSize = SelectedProperty.PropertyType.GetProperty("LabelFontSize");
                 labelPropFont.SetValue(SelectedProperty.GetValue(MapAssistConfiguration.Loaded.MapConfiguration, null), fontDlg.Font.Name, null);
                 labelPropFontSize.SetValue(SelectedProperty.GetValue(MapAssistConfiguration.Loaded.MapConfiguration, null), fontDlg.Font.Size, null);
 
@@ -741,8 +741,8 @@ namespace MapAssist
         {
             dynamic defaultlabelProp = MapAssistConfiguration.Default.MapConfiguration.GetType().GetProperty(cboRenderOption.Text.ToPascalCase()).GetValue(MapAssistConfiguration.Default.MapConfiguration, null);
 
-            var labelPropFont = SelectedProperty.PropertyType.GetProperty("LabelFont");
-            var labelPropFontSize = SelectedProperty.PropertyType.GetProperty("LabelFontSize");
+            PropertyInfo labelPropFont = SelectedProperty.PropertyType.GetProperty("LabelFont");
+            PropertyInfo labelPropFontSize = SelectedProperty.PropertyType.GetProperty("LabelFontSize");
 
             labelPropFont.SetValue(SelectedProperty.GetValue(MapAssistConfiguration.Loaded.MapConfiguration, null), defaultlabelProp.LabelFont, null);
             labelPropFontSize.SetValue(SelectedProperty.GetValue(MapAssistConfiguration.Loaded.MapConfiguration, null), defaultlabelProp.LabelFontSize, null);
@@ -752,10 +752,10 @@ namespace MapAssist
 
         private void btnLineColor_Click(object sender, EventArgs e)
         {
-            var (colorDlg, colorResult) = SelectColor(btnLineColor.BackColor);
+            (ColorDialog colorDlg, DialogResult colorResult) = SelectColor(btnLineColor.BackColor);
             if (colorResult == DialogResult.OK)
             {
-                var linePropColor = SelectedProperty.PropertyType.GetProperty("LineColor");
+                PropertyInfo linePropColor = SelectedProperty.PropertyType.GetProperty("LineColor");
                 linePropColor.SetValue(SelectedProperty.GetValue(MapAssistConfiguration.Loaded.MapConfiguration, null), colorDlg.Color, null);
                 btnLineColor.BackColor = colorDlg.Color;
                 btnLineColor.ForeColor = ContrastTextColor(btnLineColor.BackColor);
@@ -766,7 +766,7 @@ namespace MapAssist
 
         private void btnClearLineColor_Click(object sender, EventArgs e)
         {
-            var linePropColor = SelectedProperty.PropertyType.GetProperty("LineColor");
+            PropertyInfo linePropColor = SelectedProperty.PropertyType.GetProperty("LineColor");
             linePropColor.SetValue(SelectedProperty.GetValue(MapAssistConfiguration.Loaded.MapConfiguration, null), Color.Empty, null);
             btnLineColor.BackColor = Color.Empty;
             btnLineColor.ForeColor = ContrastTextColor(btnLineColor.BackColor);
@@ -776,21 +776,21 @@ namespace MapAssist
 
         private void lineArrowSize_Scroll(object sender, EventArgs e)
         {
-            var iconProp = SelectedProperty.PropertyType.GetProperty("ArrowHeadSize");
+            PropertyInfo iconProp = SelectedProperty.PropertyType.GetProperty("ArrowHeadSize");
             iconProp.SetValue(SelectedProperty.GetValue(MapAssistConfiguration.Loaded.MapConfiguration, null), lineArrowSize.Value, null);
             lblLineArrowSizeValue.Text = lineArrowSize.Value.ToString();
         }
 
         private void lineThicknessSize_Scroll(object sender, EventArgs e)
         {
-            var iconProp = SelectedProperty.PropertyType.GetProperty("LineThickness");
+            PropertyInfo iconProp = SelectedProperty.PropertyType.GetProperty("LineThickness");
             iconProp.SetValue(SelectedProperty.GetValue(MapAssistConfiguration.Loaded.MapConfiguration, null), lineThicknessSize.Value, null);
             lblLineThicknessSizeValue.Text = lineThicknessSize.Value.ToString();
         }
 
         private void chkTextShadow_CheckedChanged(object sender, EventArgs e)
         {
-            var LabelTextShadow = SelectedProperty.PropertyType.GetProperty("LabelTextShadow");
+            PropertyInfo LabelTextShadow = SelectedProperty.PropertyType.GetProperty("LabelTextShadow");
             LabelTextShadow.SetValue(SelectedProperty.GetValue(MapAssistConfiguration.Loaded.MapConfiguration, null), chkTextShadow.Checked, null);
         }
 
@@ -894,7 +894,7 @@ namespace MapAssist
 
         private void btnSuperiorColor_Click(object sender, EventArgs e)
         {
-            var (colorDlg, colorResult) = SelectColor(btnSuperiorColor.BackColor);
+            (ColorDialog colorDlg, DialogResult colorResult) = SelectColor(btnSuperiorColor.BackColor);
             if (colorResult == DialogResult.OK)
             {
                 MapAssistConfiguration.Loaded.ItemLog.SuperiorColor = colorDlg.Color;
@@ -907,7 +907,7 @@ namespace MapAssist
 
         private void btnMagicColor_Click(object sender, EventArgs e)
         {
-            var (colorDlg, colorResult) = SelectColor(btnMagicColor.BackColor);
+            (ColorDialog colorDlg, DialogResult colorResult) = SelectColor(btnMagicColor.BackColor);
             if (colorResult == DialogResult.OK)
             {
                 MapAssistConfiguration.Loaded.ItemLog.MagicColor = colorDlg.Color;
@@ -920,7 +920,7 @@ namespace MapAssist
 
         private void btnRareColor_Click(object sender, EventArgs e)
         {
-            var (colorDlg, colorResult) = SelectColor(btnRareColor.BackColor);
+            (ColorDialog colorDlg, DialogResult colorResult) = SelectColor(btnRareColor.BackColor);
             if (colorResult == DialogResult.OK)
             {
                 MapAssistConfiguration.Loaded.ItemLog.RareColor = colorDlg.Color;
@@ -933,7 +933,7 @@ namespace MapAssist
 
         private void btnSetColor_Click(object sender, EventArgs e)
         {
-            var (colorDlg, colorResult) = SelectColor(btnSetColor.BackColor);
+            (ColorDialog colorDlg, DialogResult colorResult) = SelectColor(btnSetColor.BackColor);
             if (colorResult == DialogResult.OK)
             {
                 MapAssistConfiguration.Loaded.ItemLog.SetColor = colorDlg.Color;
@@ -946,7 +946,7 @@ namespace MapAssist
 
         private void btnUniqueColor_Click(object sender, EventArgs e)
         {
-            var (colorDlg, colorResult) = SelectColor(btnUniqueColor.BackColor);
+            (ColorDialog colorDlg, DialogResult colorResult) = SelectColor(btnUniqueColor.BackColor);
             if (colorResult == DialogResult.OK)
             {
                 MapAssistConfiguration.Loaded.ItemLog.UniqueColor = colorDlg.Color;
@@ -959,7 +959,7 @@ namespace MapAssist
 
         private void btnCraftedColor_Click(object sender, EventArgs e)
         {
-            var (colorDlg, colorResult) = SelectColor(btnCraftedColor.BackColor);
+            (ColorDialog colorDlg, DialogResult colorResult) = SelectColor(btnCraftedColor.BackColor);
             if (colorResult == DialogResult.OK)
             {
                 MapAssistConfiguration.Loaded.ItemLog.CraftedColor = colorDlg.Color;
@@ -1067,7 +1067,7 @@ namespace MapAssist
 
         private void btnWalkableColor_Click(object sender, EventArgs e)
         {
-            var (colorDlg, colorResult) = SelectColor(btnWalkableColor.BackColor);
+            (ColorDialog colorDlg, DialogResult colorResult) = SelectColor(btnWalkableColor.BackColor);
             if (colorResult == DialogResult.OK)
             {
                 MapAssistConfiguration.Loaded.MapColorConfiguration.Walkable = colorDlg.Color;
@@ -1089,7 +1089,7 @@ namespace MapAssist
 
         private void btnBorderColor_Click(object sender, EventArgs e)
         {
-            var (colorDlg, colorResult) = SelectColor(btnBorderColor.BackColor);
+            (ColorDialog colorDlg, DialogResult colorResult) = SelectColor(btnBorderColor.BackColor);
             if (colorResult == DialogResult.OK)
             {
                 MapAssistConfiguration.Loaded.MapColorConfiguration.Border = colorDlg.Color;
@@ -1111,7 +1111,7 @@ namespace MapAssist
 
         private void btnExpRangeColor_Click(object sender, EventArgs e)
         {
-            var (colorDlg, colorResult) = SelectColor(btnExpRangeColor.BackColor);
+            (ColorDialog colorDlg, DialogResult colorResult) = SelectColor(btnExpRangeColor.BackColor);
             if (colorResult == DialogResult.OK)
             {
                 MapAssistConfiguration.Loaded.MapColorConfiguration.ExpRange = colorDlg.Color;
@@ -1229,7 +1229,7 @@ namespace MapAssist
             {
                 colorDlg.CustomColors = customColors.Select(color => ColorTranslator.ToOle(color)).ToArray();
             }
-            var result = colorDlg.ShowDialog();
+            DialogResult result = colorDlg.ShowDialog();
             if (result == DialogResult.OK)
             {
                 customColors = colorDlg.CustomColors.Select(color => ColorTranslator.FromOle(color)).Where(color => color != Color.White).ToList();

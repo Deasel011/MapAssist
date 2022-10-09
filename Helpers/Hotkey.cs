@@ -94,11 +94,11 @@ namespace MapAssist.Helpers
 
         private static Keys ParseKeys(string keysString)
         {
-            var keys = Keys.None;
+            Keys keys = Keys.None;
 
             foreach (var keyString in keysString.Split(new string[] { " + " }, StringSplitOptions.None))
             {
-                if (keyLookup.TryGetValue(keyString, out var key1))
+                if (keyLookup.TryGetValue(keyString, out Keys key1))
                 {
                     keys |= key1;
                 }

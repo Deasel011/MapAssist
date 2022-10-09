@@ -3,6 +3,7 @@ using MapAssist.Types;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 
 namespace MapAssist.Helpers
 {
@@ -27,7 +28,7 @@ namespace MapAssist.Helpers
             }
 
             // Scan the list of rules
-            foreach (var rule in matches.SelectMany(kv => kv.Value))
+            foreach (ItemFilter rule in matches.SelectMany(kv => kv.Value))
             {
                 // Skip generic unid rules for identified items on ground or in inventory
                 if (item.IsIdentified && (item.IsDropped || item.IsAnyPlayerHolding) && rule.TargetsUnidItem()) continue;
@@ -71,24 +72,24 @@ namespace MapAssist.Helpers
                     },
                 };
 
-                foreach (var (stat, shift) in Stats.StatShifts.Select(x => (x.Key, x.Value)))
+                foreach ((Stats.Stat stat, var shift) in Stats.StatShifts.Select(x => (x.Key, x.Value)))
                 {
                     requirementsFunctions.Add(stat.ToString(), () => Items.GetItemStatShifted(item, stat) >= (int)rule[stat]);
                 }
 
                 var requirementMet = true;
-                foreach (var property in rule.GetType().GetProperties())
+                foreach (PropertyInfo property in rule.GetType().GetProperties())
                 {
                     if (property.PropertyType == typeof(object)) continue; // This is the item from Stat property
 
                     var propertyValue = rule.GetType().GetProperty(property.Name).GetValue(rule, null);
                     if (propertyValue == null) continue;
 
-                    if (requirementsFunctions.TryGetValue(property.Name, out var requirementFunc))
+                    if (requirementsFunctions.TryGetValue(property.Name, out Func<bool> requirementFunc))
                     {
                         requirementMet &= requirementFunc();
                     }
-                    else if (Enum.TryParse<Stats.Stat>(property.Name, out var stat))
+                    else if (Enum.TryParse<Stats.Stat>(property.Name, out Stats.Stat stat))
                     {
                         requirementMet &= Stats.NegativeValueStats.Contains(stat)
                             ? (int)propertyValue < 0 && Items.GetItemStat(item, stat) <= (int)propertyValue

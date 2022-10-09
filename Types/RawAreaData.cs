@@ -72,7 +72,7 @@ namespace MapAssist.Types
                 AdjacentLevels = exits
                     .Select(o =>
                     {
-                        var adjacentArea = Area.None;
+                        Area adjacentArea = Area.None;
                         if (int.TryParse(o.Key, out var parsed))
                         {
                             adjacentArea = (Area)parsed;
@@ -86,7 +86,7 @@ namespace MapAssist.Types
                 NPCs = npcs.Select(o =>
                     {
                         Point[] positions = o.Value.Select(j => j.ToPoint()).ToArray();
-                        var npc = Npc.Invalid;
+                        Npc npc = Npc.Invalid;
                         if (int.TryParse(o.Key, out var parsed))
                         {
                             npc = (Npc)parsed;
@@ -99,7 +99,7 @@ namespace MapAssist.Types
                 Objects = objects.Select(o =>
                     {
                         Point[] positions = o.Value.Select(j => j.ToPoint()).ToArray();
-                        var gameObject = GameObject.NotApplicable;
+                        GameObject gameObject = GameObject.NotApplicable;
                         if (int.TryParse(o.Key, out var parsed))
                         {
                             gameObject = (GameObject)parsed;

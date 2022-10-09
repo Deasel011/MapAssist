@@ -18,7 +18,7 @@ namespace MapAssist.Types
         {
             if (base.Update() == UpdateResult.Updated)
             {
-                using (var processContext = GameManager.GetProcessContext())
+                using (ProcessContext processContext = GameManager.GetProcessContext())
                 {
                     ObjectData = processContext.Read<ObjectData>(Struct.pUnitData);
 

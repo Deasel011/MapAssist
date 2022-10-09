@@ -17,7 +17,7 @@ namespace MapAssist.Types
 
         public Act Update()
         {
-            using (var processContext = GameManager.GetProcessContext())
+            using (ProcessContext processContext = GameManager.GetProcessContext())
             {
                 _act = processContext.Read<Structs.Act>(_pAct);
             }

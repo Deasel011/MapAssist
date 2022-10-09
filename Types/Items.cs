@@ -1,8 +1,10 @@
 using MapAssist.Helpers;
 using MapAssist.Settings;
+using MapAssist.Structs;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using YamlDotNet.Serialization;
 
 namespace MapAssist.Types
@@ -46,7 +48,7 @@ namespace MapAssist.Types
                 }
             }
 
-            var (logItem, rule) = LootFilter.Filter(item, areaLevel, playerLevel);
+            (var logItem, ItemFilter rule) = LootFilter.Filter(item, areaLevel, playerLevel);
             if (!logItem) return;
 
             if (MapAssistConfiguration.Loaded.ItemLog.PlaySoundOnDrop && (rule == null || rule.PlaySoundOnDrop))
@@ -173,12 +175,12 @@ namespace MapAssist.Types
 
             if (rule.ClassSkills != null)
             {
-                foreach (var subrule in rule.ClassSkills)
+                foreach (KeyValuePair<PlayerClass, int?> subrule in rule.ClassSkills)
                 {
-                    var (classes, points) = GetItemStatAddClassSkills(item, subrule.Key);
+                    (PlayerClass[] classes, var points) = GetItemStatAddClassSkills(item, subrule.Key);
                     if (points > 0)
                     {
-                        foreach (var className in classes)
+                        foreach (PlayerClass className in classes)
                         {
                             itemSuffix += $" (+{points} {className} skills)";
                         }
@@ -188,12 +190,12 @@ namespace MapAssist.Types
 
             if (rule.SkillTrees != null)
             {
-                foreach (var subrule in rule.SkillTrees)
+                foreach (KeyValuePair<SkillTree, int?> subrule in rule.SkillTrees)
                 {
-                    var (skillTrees, points) = GetItemStatAddSkillTreeSkills(item, subrule.Key);
+                    (SkillTree[] skillTrees, var points) = GetItemStatAddSkillTreeSkills(item, subrule.Key);
                     if (points > 0)
                     {
-                        foreach (var skillTree in skillTrees)
+                        foreach (SkillTree skillTree in skillTrees)
                         {
                             itemSuffix += $" (+{points} {skillTree.Name().Replace(" Skills", "")} skills)";
                         }
@@ -203,12 +205,12 @@ namespace MapAssist.Types
 
             if (rule.Skills != null)
             {
-                foreach (var subrule in rule.Skills)
+                foreach (KeyValuePair<Skill, int?> subrule in rule.Skills)
                 {
-                    var (skills, points) = GetItemStatAddSingleSkills(item, subrule.Key);
+                    (Skill[] skills, var points) = GetItemStatAddSingleSkills(item, subrule.Key);
                     if (points > 0)
                     {
-                        foreach (var skill in skills)
+                        foreach (Skill skill in skills)
                         {
                             itemSuffix += $" (+{points} {skill.Name()})";
                         }
@@ -218,7 +220,7 @@ namespace MapAssist.Types
 
             if (rule.SkillCharges != null)
             {
-                foreach (var subrule in rule.SkillCharges)
+                foreach (KeyValuePair<Skill, int?> subrule in rule.SkillCharges)
                 {
                     var (skillLevel, currentCharges, maxCharges) = GetItemStatAddSkillCharges(item, subrule.Key);
                     if (skillLevel > 0)
@@ -233,14 +235,14 @@ namespace MapAssist.Types
                 }
             }
 
-            foreach (var (stat, shift) in Stats.StatShifts.Select(x => (x.Key, x.Value)))
+            foreach ((Stats.Stat stat, var shift) in Stats.StatShifts.Select(x => (x.Key, x.Value)))
             {
-                var property = rule.GetType().GetProperty(stat.ToString());
+                PropertyInfo property = rule.GetType().GetProperty(stat.ToString());
                 if (property == null) continue;
                 var propertyValue = property.GetValue(rule, null);
                 if (propertyValue == null) continue;
 
-                var yamlAttribute = property.CustomAttributes.FirstOrDefault(x => x.AttributeType == typeof(YamlMemberAttribute));
+                CustomAttributeData yamlAttribute = property.CustomAttributes.FirstOrDefault(x => x.AttributeType == typeof(YamlMemberAttribute));
                 var propName = property.Name;
 
                 if (yamlAttribute != null) propName = yamlAttribute.NamedArguments.FirstOrDefault(x => x.MemberName == "Alias").TypedValue.Value.ToString();
@@ -253,14 +255,14 @@ namespace MapAssist.Types
                 statsProcessed.Add(stat);
             }
 
-            foreach (var property in rule.GetType().GetProperties())
+            foreach (PropertyInfo property in rule.GetType().GetProperties())
             {
-                var yamlAttribute = property.CustomAttributes.FirstOrDefault(x => x.AttributeType == typeof(YamlMemberAttribute));
+                CustomAttributeData yamlAttribute = property.CustomAttributes.FirstOrDefault(x => x.AttributeType == typeof(YamlMemberAttribute));
                 var propName = property.Name;
 
                 if (yamlAttribute != null) propName = yamlAttribute.NamedArguments.FirstOrDefault(x => x.MemberName == "Alias").TypedValue.Value.ToString();
 
-                if (property.PropertyType == typeof(int?) && Enum.TryParse<Stats.Stat>(property.Name, out var stat))
+                if (property.PropertyType == typeof(int?) && Enum.TryParse<Stats.Stat>(property.Name, out Stats.Stat stat))
                 {
                     if (statsProcessed.Contains(stat)) continue;
 
@@ -334,7 +336,7 @@ namespace MapAssist.Types
                 return "ItemNotFound";
             }
 
-            var lang = MapAssistConfiguration.Loaded.LanguageCode;
+            Locale lang = MapAssistConfiguration.Loaded.LanguageCode;
             var prop = localItem.GetType().GetProperty(lang.ToString()).GetValue(localItem, null);
 
             return prop.ToString();
@@ -348,7 +350,7 @@ namespace MapAssist.Types
                 return "ItemNotFound";
             }
 
-            var lang = MapAssistConfiguration.Loaded.LanguageCode;
+            Locale lang = MapAssistConfiguration.Loaded.LanguageCode;
             var prop = localItem.GetType().GetProperty(lang.ToString()).GetValue(localItem, null);
 
             return prop.ToString();
@@ -368,7 +370,7 @@ namespace MapAssist.Types
                 return "ItemNotFound";
             }
 
-            var lang = MapAssistConfiguration.Loaded.LanguageCode;
+            Locale lang = MapAssistConfiguration.Loaded.LanguageCode;
             var prop = localItem.GetType().GetProperty(lang.ToString()).GetValue(localItem, null);
 
             return prop.ToString();
@@ -388,7 +390,7 @@ namespace MapAssist.Types
                 return "ItemNotFound";
             }
 
-            var lang = MapAssistConfiguration.Loaded.LanguageCode;
+            Locale lang = MapAssistConfiguration.Loaded.LanguageCode;
             var prop = localItem.GetType().GetProperty(lang.ToString()).GetValue(localItem, null);
 
             return prop.ToString();
@@ -413,7 +415,7 @@ namespace MapAssist.Types
                 return "Unique";
             }
 
-            var lang = MapAssistConfiguration.Loaded.LanguageCode;
+            Locale lang = MapAssistConfiguration.Loaded.LanguageCode;
             var prop = localItem.GetType().GetProperty(lang.ToString()).GetValue(localItem, null);
 
             return prop.ToString();
@@ -438,7 +440,7 @@ namespace MapAssist.Types
                 return "Set";
             }
 
-            var lang = MapAssistConfiguration.Loaded.LanguageCode;
+            Locale lang = MapAssistConfiguration.Loaded.LanguageCode;
             var prop = localItem.GetType().GetProperty(lang.ToString()).GetValue(localItem, null);
 
             return prop.ToString();
@@ -487,10 +489,10 @@ namespace MapAssist.Types
 
         public static ItemTier GetItemTier(Item item)
         {
-            var itemClasses = ItemClasses.Where(x => x.Value.Contains(item));
+            IEnumerable<KeyValuePair<Item, Item[]>> itemClasses = ItemClasses.Where(x => x.Value.Contains(item));
             if (itemClasses.Count() == 0) return ItemTier.NotApplicable;
 
-            var itemClass = itemClasses.First();
+            KeyValuePair<Item, Item[]> itemClass = itemClasses.First();
             if (itemClass.Key == Item.ClassCirclets) return ItemTier.NotApplicable;
 
             return (ItemTier)(Array.IndexOf(itemClass.Value, item) * 3 / itemClass.Value.Length); // All items within each class (except circlets) come in equal amounts within each tier
@@ -542,9 +544,9 @@ namespace MapAssist.Types
                 var maxClassSkills = 0;
                 var maxClasses = new List<Structs.PlayerClass>();
 
-                for (var classId = Structs.PlayerClass.Amazon; classId <= Structs.PlayerClass.Assassin; classId++)
+                for (PlayerClass classId = Structs.PlayerClass.Amazon; classId <= Structs.PlayerClass.Assassin; classId++)
                 {
-                    if (item.StatLayers.TryGetValue(Stats.Stat.AddClassSkills, out var anyItemStats) &&
+                    if (item.StatLayers.TryGetValue(Stats.Stat.AddClassSkills, out Dictionary<ushort, int> anyItemStats) &&
                         anyItemStats.TryGetValue((ushort)classId, out var anyClassSkills))
                     {
                         if (anyClassSkills > maxClassSkills)
@@ -562,7 +564,7 @@ namespace MapAssist.Types
                 return (maxClasses.ToArray(), allSkills + maxClassSkills);
             }
 
-            if (item.StatLayers.TryGetValue(Stats.Stat.AddClassSkills, out var itemStats) &&
+            if (item.StatLayers.TryGetValue(Stats.Stat.AddClassSkills, out Dictionary<ushort, int> itemStats) &&
                 itemStats.TryGetValue((ushort)playerClass, out var addClassSkills))
             {
                 return (new Structs.PlayerClass[] { playerClass }, allSkills + addClassSkills);
@@ -578,9 +580,9 @@ namespace MapAssist.Types
                 var maxSkillTreeQuantity = 0;
                 var maxSkillTrees = new List<SkillTree>();
 
-                foreach (var skillTreeId in Enum.GetValues(typeof(SkillTree)).Cast<SkillTree>().Where(x => x != SkillTree.Any).ToList())
+                foreach (SkillTree skillTreeId in Enum.GetValues(typeof(SkillTree)).Cast<SkillTree>().Where(x => x != SkillTree.Any).ToList())
                 {
-                    if (item.StatLayers.TryGetValue(Stats.Stat.AddSkillTab, out var anyItemStats) &&
+                    if (item.StatLayers.TryGetValue(Stats.Stat.AddSkillTab, out Dictionary<ushort, int> anyItemStats) &&
                         anyItemStats.TryGetValue((ushort)skillTreeId, out var anyTabSkills))
                     {
                         anyTabSkills += addClassSkills ? GetItemStatAddClassSkills(item, skillTreeId.GetPlayerClass()).Item2 : 0; // This adds the +class skill points and +all skills points
@@ -602,7 +604,7 @@ namespace MapAssist.Types
 
             var baseAddSkills = addClassSkills ? GetItemStatAddClassSkills(item, skillTree.GetPlayerClass()).Item2 : 0; // This adds the +class skill points and +all skills points
 
-            if (item.StatLayers.TryGetValue(Stats.Stat.AddSkillTab, out var itemStats) &&
+            if (item.StatLayers.TryGetValue(Stats.Stat.AddSkillTab, out Dictionary<ushort, int> itemStats) &&
                 itemStats.TryGetValue((ushort)skillTree, out var addSkillTab))
             {
                 return (new SkillTree[] { skillTree }, baseAddSkills + addSkillTab);
@@ -624,11 +626,11 @@ namespace MapAssist.Types
                 var maxSkillQuantity = 0;
                 var maxSkills = new List<Skill>();
 
-                foreach (var statType in itemSkillsStats)
+                foreach (Stats.Stat statType in itemSkillsStats)
                 {
-                    foreach (var skillId in SkillExtensions.SkillTreeToSkillDict.SelectMany(x => x.Value).ToList())
+                    foreach (Skill skillId in SkillExtensions.SkillTreeToSkillDict.SelectMany(x => x.Value).ToList())
                     {
-                        if (item.StatLayers.TryGetValue(statType, out var anyItemStats) &&
+                        if (item.StatLayers.TryGetValue(statType, out Dictionary<ushort, int> anyItemStats) &&
                             anyItemStats.TryGetValue((ushort)skillId, out var anySkillLevel))
                         {
                             anySkillLevel += (addSkillTree && statType == Stats.Stat.SingleSkill ? GetItemStatAddSkillTreeSkills(item, skillId.GetSkillTree()).Item2 : 0); // This adds the +skill tree points, +class skill points and +all skills points
@@ -651,9 +653,9 @@ namespace MapAssist.Types
 
             var baseAddSkills = addSkillTree ? GetItemStatAddSkillTreeSkills(item, skill.GetSkillTree()).Item2 : 0; // This adds the +skill tree points, +class skill points and +all skills points
 
-            foreach (var statType in itemSkillsStats)
+            foreach (Stats.Stat statType in itemSkillsStats)
             {
-                if (item.StatLayers.TryGetValue(statType, out var itemStats) &&
+                if (item.StatLayers.TryGetValue(statType, out Dictionary<ushort, int> itemStats) &&
                     itemStats.TryGetValue((ushort)skill, out var skillLevel))
                 {
                     return (new Skill[] { skill }, (statType == Stats.Stat.SingleSkill ? baseAddSkills : 0) + skillLevel);
@@ -665,9 +667,9 @@ namespace MapAssist.Types
 
         public static (int, int, int) GetItemStatAddSkillCharges(UnitItem item, Skill skill)
         {
-            if (item.StatLayers.TryGetValue(Stats.Stat.ItemChargedSkill, out var itemStats))
+            if (item.StatLayers.TryGetValue(Stats.Stat.ItemChargedSkill, out Dictionary<ushort, int> itemStats))
             {
-                foreach (var stat in itemStats)
+                foreach (KeyValuePair<ushort, int> stat in itemStats)
                 {
                     var skillId = stat.Key >> 6;
                     var level = stat.Key % (1 << 6);

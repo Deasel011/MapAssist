@@ -17,7 +17,7 @@ namespace MapAssist.Helpers
 
         public static void ExportPlayerInventory(UnitPlayer player, UnitItem[] itemAry)
         {
-            var itemsExport = GetItemsExport(player, itemAry);
+            ExportedItems itemsExport = GetItemsExport(player, itemAry);
 
             ExportPlayerInventoryHTML(player, itemsExport);
             ExportPlayerInventoryJSON(player, itemsExport);
@@ -25,7 +25,7 @@ namespace MapAssist.Helpers
 
         public static ExportedItems GetItemsExport(UnitPlayer player, UnitItem[] itemAry)
         {
-            using (var processContext = GameManager.GetProcessContext())
+            using (ProcessContext processContext = GameManager.GetProcessContext())
             {
                 var items = itemAry.Select(item => { item.IsCached = false; return item.Update(); }).ToList();
 
@@ -137,7 +137,7 @@ namespace MapAssist.Helpers
         public static List<JSONItem> ItemsToList(List<UnitItem> filteredItems)
         {
             var itemJSONarr = new List<JSONItem>();
-            foreach (var item in filteredItems)
+            foreach (UnitItem item in filteredItems)
             {
                 item.Stats.TryGetValue(Stats.Stat.NumSockets, out var numSockets);
                 var thisItem = new JSONItem()
@@ -163,7 +163,7 @@ namespace MapAssist.Helpers
         {
             var affixes = new List<Affix>();
 
-            foreach (var (stat, values) in item.StatLayers.Select(x => (x.Key, x.Value)).ToArray())
+            foreach ((Stats.Stat stat, Dictionary<ushort, int> values) in item.StatLayers.Select(x => (x.Key, x.Value)).ToArray())
             {
                 var name = AddSpaces(stat.ToString());
 
@@ -185,19 +185,19 @@ namespace MapAssist.Helpers
                     }
                     else if (stat == Stats.Stat.AddClassSkills)
                     {
-                        var (classSkills, points) = Items.GetItemStatAddClassSkills(item, (PlayerClass)layer);
+                        (PlayerClass[] classSkills, var points) = Items.GetItemStatAddClassSkills(item, (PlayerClass)layer);
                         name = classSkills[0].ToString() + " Skills";
                         finalValue = points.ToString();
                     }
                     else if (stat == Stats.Stat.AddSkillTab)
                     {
-                        var (skillTrees, points) = Items.GetItemStatAddSkillTreeSkills(item, (SkillTree)layer, false);
+                        (SkillTree[] skillTrees, var points) = Items.GetItemStatAddSkillTreeSkills(item, (SkillTree)layer, false);
                         name = AddSpaces(skillTrees[0].ToString());
                         finalValue = points.ToString();
                     }
                     else if (stat == Stats.Stat.SingleSkill || stat == Stats.Stat.NonClassSkill)
                     {
-                        var (skills, points) = Items.GetItemStatAddSingleSkills(item, (Skill)layer, false);
+                        (Skill[] skills, var points) = Items.GetItemStatAddSingleSkills(item, (Skill)layer, false);
                         name = AddSpaces(skills[0].ToString());
                         finalValue = points.ToString();
                     }
@@ -243,7 +243,7 @@ namespace MapAssist.Helpers
                 }
             }
 
-            foreach (var stat in new[] { Stats.Stat.EnhancedDefense, Stats.Stat.EnhancedDamage })
+            foreach (Stats.Stat stat in new[] { Stats.Stat.EnhancedDefense, Stats.Stat.EnhancedDamage })
             {
                 var name = AddSpaces(stat.ToString());
 
@@ -272,7 +272,7 @@ namespace MapAssist.Helpers
         {
             var result = "";
 
-            foreach (var item in items.OrderBy(x => x.TxtFileNo))
+            foreach (UnitItem item in items.OrderBy(x => x.TxtFileNo))
             {
                 result += GetItemHtml(item);
             }
@@ -303,8 +303,8 @@ namespace MapAssist.Helpers
             }
             else
             {
-                var affixes = GetAffixes(item);
-                foreach (var affix in affixes)
+                List<Affix> affixes = GetAffixes(item);
+                foreach (Affix affix in affixes)
                 {
                     statText += statTemplate.Replace("{{text}}", affix.name + ": " + affix.value);
                 }

@@ -17,7 +17,7 @@ namespace MapAssist.Types
 
         public Path Update()
         {
-            using (var processContext = GameManager.GetProcessContext())
+            using (ProcessContext processContext = GameManager.GetProcessContext())
             {
                 _path = processContext.Read<Structs.Path>(_pPath);
             }

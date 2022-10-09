@@ -19,7 +19,7 @@ namespace MapAssist.Types
 
         public Room Update()
         {
-            using (var processContext = GameManager.GetProcessContext())
+            using (ProcessContext processContext = GameManager.GetProcessContext())
             {
                 _room = processContext.Read<Structs.Room>(_pRoom);
             }
@@ -31,7 +31,7 @@ namespace MapAssist.Types
         {
             get
             {
-                using (var processContext = GameManager.GetProcessContext())
+                using (ProcessContext processContext = GameManager.GetProcessContext())
                 {
                     var addrBuf = new byte[8];
                     var uintBuf = new byte[4];

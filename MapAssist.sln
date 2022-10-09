@@ -5,6 +5,8 @@ VisualStudioVersion = 16.0.31727.386
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MapAssist", "MapAssist.csproj", "{FB3AC437-B7BB-42FF-A2A2-F10551F95F6C}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MemScanner", "MemScanner\MemScanner.csproj", "{9BE32701-C988-4651-AE37-A3E3E71D4577}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -15,6 +17,10 @@ Global
 		{FB3AC437-B7BB-42FF-A2A2-F10551F95F6C}.Debug|x64.Build.0 = Debug|x64
 		{FB3AC437-B7BB-42FF-A2A2-F10551F95F6C}.Release|x64.ActiveCfg = Release|x64
 		{FB3AC437-B7BB-42FF-A2A2-F10551F95F6C}.Release|x64.Build.0 = Release|x64
+		{9BE32701-C988-4651-AE37-A3E3E71D4577}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{9BE32701-C988-4651-AE37-A3E3E71D4577}.Debug|x64.Build.0 = Debug|Any CPU
+		{9BE32701-C988-4651-AE37-A3E3E71D4577}.Release|x64.ActiveCfg = Release|Any CPU
+		{9BE32701-C988-4651-AE37-A3E3E71D4577}.Release|x64.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

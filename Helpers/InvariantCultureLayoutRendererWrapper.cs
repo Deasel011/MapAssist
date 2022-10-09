@@ -18,7 +18,7 @@ namespace MapAssist
 
         protected override string RenderInner(LogEventInfo logEvent)
         {
-            var currentCulture = Thread.CurrentThread.CurrentUICulture;
+            CultureInfo currentCulture = Thread.CurrentThread.CurrentUICulture;
             try
             {
                 Thread.CurrentThread.CurrentUICulture = CultureInfo.InvariantCulture;

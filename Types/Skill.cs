@@ -24,12 +24,12 @@ namespace MapAssist.Types
 
         public Skills Update()
         {
-            using (var processContext = GameManager.GetProcessContext())
+            using (ProcessContext processContext = GameManager.GetProcessContext())
             {
-                var skillList = processContext.Read<SkillList>(_pSkills);
+                SkillList skillList = processContext.Read<SkillList>(_pSkills);
 
-                var skill = processContext.Read<SkillStrc>(skillList.pRightSkill);
-                var skillTxt = processContext.Read<SkillTxt>(skill.SkillTxt);
+                SkillStrc skill = processContext.Read<SkillStrc>(skillList.pRightSkill);
+                SkillTxt skillTxt = processContext.Read<SkillTxt>(skill.SkillTxt);
                 RightSkillId = skillTxt.Id;
 
                 skill = processContext.Read<SkillStrc>(skillList.pLeftSkill);
@@ -41,7 +41,7 @@ namespace MapAssist.Types
                 UsedSkillId = skillTxt.Id;
 
                 AllSkills = new List<SkillPoints>();
-                var skillPtr = skillList.pFirstSkill;
+                IntPtr skillPtr = skillList.pFirstSkill;
                 while (true)
                 {
                     skill = processContext.Read<SkillStrc>(skillPtr);

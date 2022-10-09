@@ -24,7 +24,7 @@ namespace MapAssist.Types
         {
             if (base.Update() == UpdateResult.Updated)
             {
-                using (var processContext = GameManager.GetProcessContext())
+                using (ProcessContext processContext = GameManager.GetProcessContext())
                 {
                     Name = Encoding.UTF8.GetString(processContext.Read<byte>(Struct.pUnitData, 16)).TrimEnd((char)0);
                     Act = new Act(Struct.pAct);
@@ -43,7 +43,7 @@ namespace MapAssist.Types
 
         public UnitPlayer UpdateRosterEntry(Roster rosterData)
         {
-            if (rosterData.EntriesByUnitId.TryGetValue(UnitId, out var rosterEntry))
+            if (rosterData.EntriesByUnitId.TryGetValue(UnitId, out RosterEntry rosterEntry))
             {
                 RosterEntry = rosterEntry;
             }
@@ -57,10 +57,10 @@ namespace MapAssist.Types
             {
                 if (Struct.pInventory != IntPtr.Zero)
                 {
-                    using (var processContext = GameManager.GetProcessContext())
+                    using (ProcessContext processContext = GameManager.GetProcessContext())
                     {
-                        var playerInfoPtr = processContext.Read<PlayerInfo>(GameManager.ExpansionCheckOffset);
-                        var playerInfo = processContext.Read<PlayerInfoStrc>(playerInfoPtr.pPlayerInfo);
+                        PlayerInfo playerInfoPtr = processContext.Read<PlayerInfo>(GameManager.ExpansionCheckOffset);
+                        PlayerInfoStrc playerInfo = processContext.Read<PlayerInfoStrc>(playerInfoPtr.pPlayerInfo);
                         var expansionCharacter = playerInfo.Expansion;
 
                         var userBaseOffset = expansionCharacter ? 0x70 : 0x30;

@@ -22,32 +22,32 @@ namespace MapAssist.Helpers
                 }
             }
 
-            foreach (var item in _localization.Areas)
+            foreach (LocalizedObj item in _localization.Areas)
             {
                 AreaExtensions.LocalizedAreas.Add(item.Key, item);
             }
 
-            foreach (var item in _localization.Items)
+            foreach (LocalizedObj item in _localization.Items)
             {
                 Items.LocalizedItems.Add(item.Key, item);
             }
 
-            foreach (var item in _localization.Runewords)
+            foreach (LocalizedObj item in _localization.Runewords)
             {
                 Items.LocalizedRunewords.Add((ushort)item.ID, item);
             }
 
-            foreach (var item in _localization.Npcs)
+            foreach (LocalizedObj item in _localization.Npcs)
             {
                 NpcExtensions.LocalizedNpcs.Add(item.Key, item);
             }
 
-            foreach (var item in _localization.Monsters)
+            foreach (LocalizedObj item in _localization.Monsters)
             {
                 NpcExtensions.LocalizedNpcs.Add(item.Key, item);
             }
 
-            foreach (var item in _localization.Shrines)
+            foreach (LocalizedObj item in _localization.Shrines)
             {
                 Shrine.LocalizedShrines.Add(item.Key, item);
             }

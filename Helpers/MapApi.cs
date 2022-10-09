@@ -103,7 +103,7 @@ namespace MapAssist.Helpers
                     else
                     {
                         _log.Info("User provided D2 LoD path not found or invalid");
-                        var diabloResult = MessageBox.Show("Provided D2 LoD path is not valid." + Environment.NewLine + Environment.NewLine + "Please provide a path to a D2 LoD 1.13c installation.", "MapAssist", MessageBoxButtons.OKCancel);
+                        DialogResult diabloResult = MessageBox.Show("Provided D2 LoD path is not valid." + Environment.NewLine + Environment.NewLine + "Please provide a path to a D2 LoD 1.13c installation.", "MapAssist", MessageBoxButtons.OKCancel);
 
                         if (diabloResult == DialogResult.Cancel)
                         {
@@ -200,8 +200,8 @@ namespace MapAssist.Helpers
                 return (0, null);
             }
 
-            var pipeInput = _pipeClient.StandardInput;
-            var pipeOutput = _pipeClient.StandardOutput;
+            StreamWriter pipeInput = _pipeClient.StandardInput;
+            StreamReader pipeOutput = _pipeClient.StandardOutput;
 
             Func<int, Task<byte[]>> ReadBytes = async (readBytesLength) =>
             {
@@ -228,8 +228,8 @@ namespace MapAssist.Helpers
 
             Func<int, Task<byte[]>> TryReadBytes = async (readBytesLength) =>
             {
-                var task = ReadBytes(readBytesLength);
-                var result = await Task.WhenAny(task, Task.Delay(timeout));
+                Task<byte[]> task = ReadBytes(readBytesLength);
+                Task result = await Task.WhenAny(task, Task.Delay(timeout));
                 if (result == task)
                 {
                     return await task;
@@ -321,10 +321,10 @@ namespace MapAssist.Helpers
 
             if (areaData != null)
             {
-                var adjacentAreas = areaData.AdjacentLevels.Keys.ToArray();
-                var stitchedAreas = areaData.Area.StitchedAreas()?.Where(x => !adjacentAreas.Contains(x)).ToArray() ?? new Area[] { };
+                Area[] adjacentAreas = areaData.AdjacentLevels.Keys.ToArray();
+                Area[] stitchedAreas = areaData.Area.StitchedAreas()?.Where(x => !adjacentAreas.Contains(x)).ToArray() ?? new Area[] { };
 
-                foreach (var adjacentArea in adjacentAreas.Concat(stitchedAreas).ToArray())
+                foreach (Area adjacentArea in adjacentAreas.Concat(stitchedAreas).ToArray())
                 {
                     if (!_cache.TryGetValue(adjacentArea, out AreaData adjAreaData))
                     {
@@ -376,8 +376,8 @@ namespace MapAssist.Helpers
 
                 if (json == null) return null;
 
-                var rawAreaData = JsonConvert.DeserializeObject<RawAreaData>(json);
-                var areaData = rawAreaData.ToInternal(area);
+                RawAreaData rawAreaData = JsonConvert.DeserializeObject<RawAreaData>(json);
+                AreaData areaData = rawAreaData.ToInternal(area);
                 _cache[area] = areaData;
                 _log.Info($"Loaded data for {areaData.Area}");
 
@@ -450,8 +450,8 @@ namespace MapAssist.Helpers
             DisposePipe();
 
             // Shutdown old running versions of the map server
-            var procs = Process.GetProcessesByName(_procName);
-            foreach (var proc in procs)
+            Process[] procs = Process.GetProcessesByName(_procName);
+            foreach (Process proc in procs)
             {
                 proc.Kill();
             }

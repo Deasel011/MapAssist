@@ -30,7 +30,7 @@ namespace MapAssist.Helpers
         public IntPtr GetUnitHashtableOffset(byte[] buffer)
         {
             var pattern = new Pattern("48 03 C7 49 8B 8C C6");
-            var patternAddress = FindPattern(buffer, pattern);
+            IntPtr patternAddress = FindPattern(buffer, pattern);
 
             var offsetBuffer = new byte[4];
             var resultRelativeAddress = IntPtr.Add(patternAddress, 7);
@@ -47,7 +47,7 @@ namespace MapAssist.Helpers
         public IntPtr GetExpansionOffset(byte[] buffer)
         {
             var pattern = new Pattern("48 8B 05 ? ? ? ? 48 8B D9 F3 0F 10 50");
-            var patternAddress = FindPattern(buffer, pattern);
+            IntPtr patternAddress = FindPattern(buffer, pattern);
             var offsetBuffer = new byte[4];
             var resultRelativeAddress = IntPtr.Add(patternAddress, 3);
             if (!WindowsExternal.ReadProcessMemory(_handle, resultRelativeAddress, offsetBuffer, sizeof(int), out _))
@@ -63,11 +63,15 @@ namespace MapAssist.Helpers
 
         public IntPtr GetGameNameOffset(byte[] buffer)
         {
-            var pattern = new Pattern("44 88 25 ? ? ? ? 66 44 89 25");
-            var patternAddress = FindPattern(buffer, pattern);
+            //B8 4F 04 FA F6 7F ? ? 58 03 78 F9 F6 7F
+            //B8-4F-04-FA-F6-7F-00-00-58-03-78-F9-F6-7F
+            //01 ? ? ? ? ? ? ? 29 B5 5F 03
+            // var pattern = new Pattern("44 88 25 ? ? ? ? 66 44 89 25");
+            var pattern = new Pattern("B8 4F 04 FA F6 7F ? ? 58 03 78 F9 F6 7F");
+            IntPtr patternAddress = FindPattern(buffer, pattern);
 
             var offsetBuffer = new byte[4];
-            var resultRelativeAddress = IntPtr.Add(patternAddress, 3);
+            var resultRelativeAddress = IntPtr.Add(patternAddress, 48);
             if (!WindowsExternal.ReadProcessMemory(_handle, resultRelativeAddress, offsetBuffer, sizeof(int), out _))
             {
                 _log.Info($"Failed to find pattern {pattern}");
@@ -76,13 +80,14 @@ namespace MapAssist.Helpers
 
             var offsetAddressToInt = BitConverter.ToInt32(offsetBuffer, 0);
             var delta = patternAddress.ToInt64() - _baseAddr.ToInt64();
-            return IntPtr.Add(_baseAddr, (int)(delta - 0x121 + offsetAddressToInt));
+            // return IntPtr.Add(_baseAddr, (int)(delta - 0x121 + offsetAddressToInt));
+            return IntPtr.Add(_baseAddr, (int)(delta + 48));
         }
 
         public IntPtr GetMenuDataOffset(byte[] buffer)
         {
             var pattern = new Pattern("48 89 45 B7 4C 8D 35 ? ? ? ?");
-            var patternAddress = FindPattern(buffer, pattern);
+            IntPtr patternAddress = FindPattern(buffer, pattern);
 
             var offsetBuffer = new byte[4];
             var resultRelativeAddress = IntPtr.Add(patternAddress, 7);
@@ -100,7 +105,7 @@ namespace MapAssist.Helpers
         public IntPtr GetRosterDataOffset(byte[] buffer)
         {
             var pattern = new Pattern("02 45 33 D2 4D 8B");
-            var patternAddress = FindPattern(buffer, pattern);
+            IntPtr patternAddress = FindPattern(buffer, pattern);
 
             var offsetBuffer = new byte[4];
             var resultRelativeAddress = IntPtr.Add(patternAddress, -3);
@@ -117,7 +122,7 @@ namespace MapAssist.Helpers
         public IntPtr GetInteractedNpcOffset(byte[] buffer)
         {
             var pattern = new Pattern("43 01 84 31 ? ? ? ?");
-            var patternAddress = FindPattern(buffer, pattern);
+            IntPtr patternAddress = FindPattern(buffer, pattern);
 
             var offsetBuffer = new byte[4];
             var resultRelativeAddress = IntPtr.Add(patternAddress, 4);

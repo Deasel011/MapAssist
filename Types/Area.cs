@@ -804,33 +804,33 @@ namespace MapAssist.Types
             {
                 return "AreaNameNotFound";
             }
-            var lang = MapAssistConfiguration.Loaded.LanguageCode;
+            Locale lang = MapAssistConfiguration.Loaded.LanguageCode;
             var prop = localItem.GetType().GetProperty(lang.ToString()).GetValue(localItem, null);
             return prop.ToString();
         }
 
         public static string Name(this Area area)
         {
-            var areaLabel = _areaLabels.TryGetValue(area, out var label) ? label.Text : area.ToString();
+            var areaLabel = _areaLabels.TryGetValue(area, out AreaLabel label) ? label.Text : area.ToString();
 
             LocalizedObj localItem;
             if (!LocalizedAreas.TryGetValue(areaLabel, out localItem))
             {
                 return area.ToString();
             }
-            var lang = MapAssistConfiguration.Loaded.LanguageCode;
+            Locale lang = MapAssistConfiguration.Loaded.LanguageCode;
             var prop = localItem.GetType().GetProperty(lang.ToString()).GetValue(localItem, null);
             return prop.ToString();
         }
 
         public static string NameInternal(this Area area)
         {
-            return _areaLabels.TryGetValue(area, out var label) ? label.Text : area.ToString();
+            return _areaLabels.TryGetValue(area, out AreaLabel label) ? label.Text : area.ToString();
         }
 
         public static int Level(this Area area, Difficulty difficulty)
         {
-            return _areaLabels.TryGetValue(area, out var label) ? label.Level[(int)difficulty] : 0;
+            return _areaLabels.TryGetValue(area, out AreaLabel label) ? label.Level[(int)difficulty] : 0;
         }
 
         public static bool IsValid(this Area area)
