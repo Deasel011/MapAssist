@@ -345,6 +345,17 @@ namespace MapAssist.Helpers
                     _log.Info($"Found offset {nameof(_PetsOffsetOffset)} 0x{_PetsOffsetOffset[pid].ToInt64() - processContext.BaseAddr.ToInt64():X}");
                 }
             }
+            
+        }
+        
+        /// <summary>
+        /// Only use for testing purposes
+        /// </summary>
+        /// <param name="processContext">An scoped process context.</param>
+        [Obsolete]
+        public static void SetProcessContext(ProcessContext processContext)
+        {
+            _processContext = processContext;
         }
 
         public static void Dispose()
