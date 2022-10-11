@@ -5,6 +5,7 @@ using MapAssist.Structs;
 using MapAssist.Types;
 using Spectre.Console;
 using System.Diagnostics;
+using System.Runtime.Intrinsics;
 using System.Text;
 using Session = MapAssist.Types.Session;
 using UnitAny = MapAssist.Structs.UnitAny;
@@ -83,10 +84,6 @@ using (var processContext = new ProcessContext(Process.GetProcessById(PID)))
             $"Found offset {nameof(_UnitHashTableOffset)} 0x{_UnitHashTableOffset[pid].ToInt64() - processContext.BaseAddr.ToInt64():X}");
         var unitHashTable = processContext.Read<UnitHashTable>(IntPtr.Add(_UnitHashTableOffset[pid], 0));
         var unitPlayers = unitHashTable.UnitTable.Where(ptr => ptr != IntPtr.Zero).Select(ptr => new UnitPlayer(ptr));
-        foreach (UnitPlayer unitPlayer in unitPlayers)
-        {
-            unitPlayer.Update();
-        }
 
         AnsiConsole.MarkupLine($"Found [bold yellow]{unitPlayers.Count()}[/] players");
     }
@@ -227,12 +224,23 @@ void GetGameName(int pid1)
 
 void GetUnitHashTable(int pid1)
 {
-    AnsiConsole.Prompt(
-        new ConfirmationPrompt("Confirm when you are close to Charsi in Act 1."));
-        // new SelectionPrompt<string>()
-        //     .AddChoices("Amazon", "Assassin", "Barbarian", "Druid", "Necromancer", "Paladin", "Sorceress")
-        //     .Title("What is your class?")
-        //     .PageSize(8));
+    var @class = AnsiConsole.Prompt(
+    //     new ConfirmationPrompt("Confirm when you are close to Charsi in Act 1."));
+    
+    // var previouslyFoundCharsiPtr = IntPtr.Zero;
+    // if (AnsiConsole.Prompt(new ConfirmationPrompt("Do you have a previous int pointer offset for Charsi?")))
+    // {
+    //     previouslyFoundCharsiPtr = IntPtr.Parse(AnsiConsole.Ask<string>("Enter the offset: "));
+    // }    
+    // var previouslyUnitHashTablePtr = IntPtr.Zero;
+    // if (AnsiConsole.Prompt(new ConfirmationPrompt("Do you have a previous int pointer offset the HashTable?")))
+    // {
+    //     previouslyUnitHashTablePtr = IntPtr.Parse(AnsiConsole.Ask<string>("Enter the offset: "));
+    // }
+        new SelectionPrompt<string>()
+            .AddChoices("Amazon", "Assassin", "Barbarian", "Druid", "Necromancer", "Paladin", "Sorceress")
+            .Title("What is your class?")
+            .PageSize(8));
     // var previouslyFoundPlayerUnitPtr = IntPtr.Zero;
     // if (AnsiConsole.Prompt(new ConfirmationPrompt("Do you have a previous int pointer offset for the player?")))
     // {
@@ -252,24 +260,183 @@ void GetUnitHashTable(int pid1)
         {
             using (var processContext = new ProcessContext(Process.GetProcessById(pid1)))
             {
+                GameManager.SetProcessContext(processContext);
                 var buffer = processContext.Read<byte>(processContext.BaseAddr, processContext.ModuleSize);
-                var playerPointer = IntPtr.Zero;
+                var monsterTablePointer = IntPtr.Zero;
                 var hashTablePointer = IntPtr.Zero;
-                var cancellationTokenSourceForPlayer = new CancellationTokenSource();
-                var cancellationTokenSourceForHashTable = new CancellationTokenSource();
+                var charsiPointer = IntPtr.Zero;
                 var shownId = 0;
                 var bufferPosition = 0;
+                var cancellationTokenSource = new CancellationTokenSource();
+                var cancellationTokenSourceForCharsi = new CancellationTokenSource();
 
-                // Finding player class and unit
+                //GetCharsiPtr();
+                
+                try
+                {
+                    var startingOffset = (previouslyFoundHashTablePtr == IntPtr.Zero
+                    ? 0
+                    : (int)((previouslyFoundHashTablePtr.ToInt64() - processContext.BaseAddr.ToInt64())));
+
+                    Parallel.For(startingOffset, buffer.Length,
+                        new ParallelOptions
+                        {
+                            MaxDegreeOfParallelism = 100, CancellationToken = cancellationTokenSource.Token
+                        },
+                        i =>
+                        {
+                            if (i > shownId)
+                            {
+                                shownId = i;
+                                ctx.Status(
+                                    $"Finding HashTable Offset... {i}/{buffer.Length} --> {Math.Floor((i / (double)buffer.Length * 100))}%");
+                            }
+                            
+                            var currentPointer = IntPtr.Add(processContext.BaseAddr, i);
+                            try
+                            {
+                                var playerHashTable = processContext.Read<MapAssist.Structs.UnitHashTable>(currentPointer);
+                                if (playerHashTable.UnitTable[0] != IntPtr.Zero 
+                                    && processContext.Read<MapAssist.Structs.UnitAny>(playerHashTable.UnitTable[0]) is UnitAny playerUnit 
+                                    && playerUnit.UnitType == UnitType.Player 
+                                    && playerUnit.pAct != IntPtr.Zero
+                                    && playerUnit.pInventory != IntPtr.Zero
+                                    && playerUnit.playerClass.ToString().Equals(@class,StringComparison.InvariantCultureIgnoreCase))
+                                {
+                                    // var monsterHashTable = processContext.Read<MapAssist.Structs.UnitHashTable>(currentPointer + 128 * 8 * (int)UnitType.Monster);
+                                    // if (monsterHashTable.UnitTable[0] != IntPtr.Zero
+                                    //     && processContext.Read<MapAssist.Structs.UnitAny>(playerHashTable.UnitTable[0])
+                                    //         is UnitAny monsterUnit
+                                    //     && monsterUnit.UnitType == UnitType.Monster
+                                    //     && monsterUnit.Mode != 0
+                                    //     && monsterUnit.Mode != 12
+                                    //     && !NPC.Dummies.ContainsKey(monsterUnit.TxtFileNo))
+                                    // {
+                                    //     var objectHashTable = processContext.Read<MapAssist.Structs.UnitHashTable>(currentPointer + 128 * 8 * (int)UnitType.Object);
+                                    //     if (objectHashTable.UnitTable[0] != IntPtr.Zero
+                                    //         && processContext.Read<MapAssist.Structs.UnitAny>(
+                                    //                 playerHashTable.UnitTable[0])
+                                    //             is UnitAny objectUnit
+                                    //         && objectUnit.UnitType == UnitType.Object)
+                                    //     {
+                                    var playerModel = new UnitPlayer(playerHashTable.UnitTable[0]);
+                                    // if (playerModel.Name?.Equals("Manaorb", StringComparison.InvariantCultureIgnoreCase) ?? false)
+                                    // {
+                                        hashTablePointer = currentPointer;
+                                        bufferPosition = i;
+                                        cancellationTokenSource.Cancel();
+                                    // }
+                                    // }
+                                    // }
+                                }
+                                
+                                
+                                
+                                // var first = playerHashTable.UnitTable[0];
+                                //
+                                // if (first != IntPtr.Zero)
+                                // {
+                                //     var firstUnit = processContext.Read<MapAssist.Structs.UnitAny>(first);
+                                //     if (firstUnit.UnitType == UnitType.Monster &&
+                                //         playerHashTable.UnitTable.Any(ptr =>
+                                //             new UnitMonster(ptr).Npc == Npc.Charsi))
+                                //     {
+                                //         AnsiConsole.MarkupLine(
+                                //             $"Found offset: [bold yellow]{currentPointer.ToInt64() - processContext.BaseAddr.ToInt64():X}[/]");
+                                //         monsterTablePointer = currentPointer;
+                                //         bufferPosition = i;
+                                //         cancellationTokenSource.Cancel();
+                                //     }
+                                // }
+                            }
+                            catch (Exception ex)
+                            {
+                                AnsiConsole.MarkupLine($"[bold red]Error[/] - {ex.Message}");
+                            }
+                            
+                            
+                        });
+
+                }
+                catch (OperationCanceledException ex)
+                {
+                    AnsiConsole.MarkupLine($"Found HashTable Pointer Offset: [bold yellow]{hashTablePointer}[/]");
+                }
+
+                // var playerPointer = IntPtr.Zero;
+                // var hashTablePointer = IntPtr.Zero;
+                // var cancellationTokenSourceForPlayer = new CancellationTokenSource();
+                // var cancellationTokenSourceForHashTable = new CancellationTokenSource();
+
+                // IntPtr GetCharsiPtr()
+                // {
+                //     try
+                //     {
+                //         var startingOffset = (previouslyFoundCharsiPtr == IntPtr.Zero
+                //             ? 0
+                //             : (int)((previouslyFoundCharsiPtr.ToInt64() - processContext.BaseAddr.ToInt64())));
+                //         Parallel.For(startingOffset, buffer.Length,
+                //             new ParallelOptions
+                //             {
+                //                 MaxDegreeOfParallelism = 100, CancellationToken = cancellationTokenSourceForCharsi.Token
+                //             },
+                //             i =>
+                //             {
+                //                 if (i > shownId)
+                //                 {
+                //                     shownId = i;
+                //                     ctx.Status(
+                //                         $"Finding Charsi Pointer Offset... {i}/{buffer.Length} --> {Math.Floor((i / (double)buffer.Length * 100))}%");
+                //                 }
+                //     
+                //                 var currentPointer = IntPtr.Add(processContext.BaseAddr, i);
+                //                 try
+                //                 {
+                //                     //Finding Charsi
+                //                     var monsterPtr = processContext.Read<UnitAny>(currentPointer);
+                //                     if (monsterPtr.UnitType == UnitType.Monster)
+                //                     {
+                //                         try
+                //                         {
+                //                             var monster = new UnitMonster(currentPointer);
+                //                             if (monster.Npc == Npc.Charsi)
+                //                             {
+                //                                 charsiPointer = currentPointer;
+                //                                 cancellationTokenSourceForCharsi.Cancel();
+                //                             }
+                //                         }catch (Exception ex)
+                //                         {
+                //                             AnsiConsole.MarkupLine($"[bold red]Error[/] - {ex.Message}");
+                //                         }
+                //                     }
+                //                 }
+                //                 catch (Exception ex)
+                //                 {
+                //                     AnsiConsole.MarkupLine($"[bold red]Error[/] - {ex.Message}");
+                //                 }
+                //             });
+                //     }
+                //     catch (OperationCanceledException ex)
+                //     {
+                //         AnsiConsole.MarkupLine($"Found Charsi Pointer Offset: [bold yellow]{charsiPointer}[/]");
+                //     }
+                //
+                //     return charsiPointer;
+                // }
+
+                // Finding the HashTable
+                // Start by finding the pointer address to the player
                 // try
                 // {
-                //     var startingOffset = (previouslyFoundPlayerUnitPtr == IntPtr.Zero
+                //     var startingOffset = (previouslyFoundHashTablePtr == IntPtr.Zero
                 //         ? 0
-                //         : (int)((previouslyFoundPlayerUnitPtr.ToInt64() - processContext.BaseAddr.ToInt64())));
+                //         : (int)((previouslyFoundHashTablePtr.ToInt64() - processContext.BaseAddr.ToInt64())));
+                //     shownId = 0;
                 //     Parallel.For(startingOffset, buffer.Length,
                 //         new ParallelOptions
                 //         {
-                //             MaxDegreeOfParallelism = 100, CancellationToken = cancellationTokenSourceForPlayer.Token
+                //             MaxDegreeOfParallelism = 100,
+                //             CancellationToken = cancellationTokenSourceForHashTable.Token
                 //         },
                 //         i =>
                 //         {
@@ -277,20 +444,30 @@ void GetUnitHashTable(int pid1)
                 //             {
                 //                 shownId = i;
                 //                 ctx.Status(
-                //                     $"Finding Player Unit Pointer Offset... {i}/{buffer.Length} --> {Math.Floor((i / (double)buffer.Length * 100))}%");
+                //                     $"Finding Unit HashTable Offset... {i}/{buffer.Length} --> {Math.Floor((i / (double)buffer.Length * 100))}%");
                 //             }
                 //
                 //             var currentPointer = IntPtr.Add(processContext.BaseAddr, i);
                 //             try
                 //             {
-                //                 //Finding player
-                //                 var player = processContext.Read<MapAssist.Structs.UnitAny>(currentPointer);
-                //                 if (player.playerClass.ToString().Equals(@class,
-                //                         StringComparison.InvariantCultureIgnoreCase) && !player.isCorpse &&
-                //                     player.UnitType == UnitType.Player)
+                //                 var hashTable = processContext.Read<MapAssist.Structs.UnitHashTable>(currentPointer);
+                //                 
+                //                 var first = hashTable.UnitTable[0];
+                //
+                //                 if (first != IntPtr.Zero)
                 //                 {
-                //                     playerPointer = currentPointer;
-                //                     cancellationTokenSourceForPlayer.Cancel();
+                //                     var firstUnit = processContext.Read<MapAssist.Structs.UnitAny>(first);
+                //                     if (firstUnit.UnitType == UnitType.Player && firstUnit.playerClass > 0 &&
+                //                         hashTable.UnitTable.Any(ptr =>
+                //                             processContext.Read<MapAssist.Structs.UnitAny>(ptr).playerClass.ToString()
+                //                                 .Equals(@class, StringComparison.InvariantCultureIgnoreCase)))
+                //                     {
+                //                         AnsiConsole.MarkupLine(
+                //                             $"Found offset: [bold yellow]{currentPointer.ToInt64() - processContext.BaseAddr.ToInt64():X}[/]");
+                //                         hashTablePointer = currentPointer;
+                //                         bufferPosition = i;
+                //                         cancellationTokenSourceForHashTable.Cancel();
+                //                     }
                 //                 }
                 //             }
                 //             catch (Exception ex)
@@ -301,68 +478,11 @@ void GetUnitHashTable(int pid1)
                 // }
                 // catch (OperationCanceledException ex)
                 // {
-                //     AnsiConsole.MarkupLine($"Found Player Unit Pointer Offset: [bold yellow]{playerPointer}[/]");
+                //     AnsiConsole.MarkupLine($"Found Unit HashTable Offset: [bold yellow]{hashTablePointer}[/]");
                 // }
 
-                // Finding the HashTable
-                // Start by finding the pointer address to the player
-                try
-                {
-                    var startingOffset = (previouslyFoundHashTablePtr == IntPtr.Zero
-                        ? 0
-                        : (int)((previouslyFoundHashTablePtr.ToInt64() - processContext.BaseAddr.ToInt64())));
-                    shownId = 0;
-                    Parallel.For(startingOffset, buffer.Length,
-                        new ParallelOptions
-                        {
-                            MaxDegreeOfParallelism = 100,
-                            CancellationToken = cancellationTokenSourceForHashTable.Token
-                        },
-                        i =>
-                        {
-                            if (i > shownId)
-                            {
-                                shownId = i;
-                                ctx.Status(
-                                    $"Finding Unit HashTable Offset... {i}/{buffer.Length} --> {Math.Floor((i / (double)buffer.Length * 100))}%");
-                            }
-
-                            var currentPointer = IntPtr.Add(processContext.BaseAddr, i);
-                            try
-                            {
-                                var hashTable = processContext.Read<MapAssist.Structs.UnitHashTable>(currentPointer);
-                                
-                                var first = hashTable.UnitTable[0];
-
-                                if (first != IntPtr.Zero)
-                                {
-                                    var firstUnit = processContext.Read<MapAssist.Structs.UnitAny>(first);
-                                    if (firstUnit.UnitType == UnitType.Player && firstUnit.playerClass > 0 &&
-                                        hashTable.UnitTable.Any(ptr =>
-                                            processContext.Read<MapAssist.Structs.UnitAny>(ptr).playerClass.ToString()
-                                                .Equals(@class, StringComparison.InvariantCultureIgnoreCase)))
-                                    {
-                                        AnsiConsole.MarkupLine(
-                                            $"Found offset: [bold yellow]{currentPointer.ToInt64() - processContext.BaseAddr.ToInt64():X}[/]");
-                                        hashTablePointer = currentPointer;
-                                        bufferPosition = i;
-                                        cancellationTokenSourceForHashTable.Cancel();
-                                    }
-                                }
-                            }
-                            catch (Exception ex)
-                            {
-                                AnsiConsole.MarkupLine($"[bold red]Error[/] - {ex.Message}");
-                            }
-                        });
-                }
-                catch (OperationCanceledException ex)
-                {
-                    AnsiConsole.MarkupLine($"Found Unit HashTable Offset: [bold yellow]{hashTablePointer}[/]");
-                }
-
                 AnsiConsole.MarkupLine($"Found buffer position: [bold yellow]{bufferPosition}[/]");
-                AnsiConsole.MarkupLine($"Printing buffer area 300 before and 300 into found struct:");
+                AnsiConsole.MarkupLine($"Printing buffer area 300 before struct:");
                 var newBytes = new byte[300];
                 Buffer.BlockCopy(buffer, bufferPosition - 300, newBytes, 0, 300);
                 AnsiConsole.MarkupLine("Before:");
