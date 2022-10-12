@@ -63,15 +63,11 @@ namespace MapAssist.Helpers
 
         public IntPtr GetGameNameOffset(byte[] buffer)
         {
-            //B8 4F 04 FA F6 7F ? ? 58 03 78 F9 F6 7F
-            //B8-4F-04-FA-F6-7F-00-00-58-03-78-F9-F6-7F
-            //01 ? ? ? ? ? ? ? 29 B5 5F 03
-            // var pattern = new Pattern("44 88 25 ? ? ? ? 66 44 89 25");
-            var pattern = new Pattern("B8 4F 04 FA F6 7F ? ? 58 03 78 F9 F6 7F");
+            var pattern = new Pattern("68 8B ? ? F6 7F ? ? C8");
             IntPtr patternAddress = FindPattern(buffer, pattern);
 
             var offsetBuffer = new byte[4];
-            var resultRelativeAddress = IntPtr.Add(patternAddress, 48);
+            var resultRelativeAddress = IntPtr.Add(patternAddress, -8);
             if (!WindowsExternal.ReadProcessMemory(_handle, resultRelativeAddress, offsetBuffer, sizeof(int), out _))
             {
                 _log.Info($"Failed to find pattern {pattern}");
@@ -81,7 +77,7 @@ namespace MapAssist.Helpers
             var offsetAddressToInt = BitConverter.ToInt32(offsetBuffer, 0);
             var delta = patternAddress.ToInt64() - _baseAddr.ToInt64();
             // return IntPtr.Add(_baseAddr, (int)(delta - 0x121 + offsetAddressToInt));
-            return IntPtr.Add(_baseAddr, (int)(delta + 48));
+            return IntPtr.Add(_baseAddr, (int)(delta -8));
         }
 
         public IntPtr GetMenuDataOffset(byte[] buffer)
