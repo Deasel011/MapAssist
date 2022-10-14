@@ -64,6 +64,9 @@ switch (res)
         break;
     case "TestAll":
         break;
+    case "MenuData":
+        GetMenuData(PID);
+        break;
     default:
         GetUnitHashTable(PID);
         break;
@@ -110,6 +113,8 @@ using (var processContext = new ProcessContext(Process.GetProcessById(PID)))
     if (_MenuDataOffset[pid] == IntPtr.Zero)
     {
         _MenuDataOffset[pid] = processContext.GetMenuDataOffset(buffer);
+        MapAssist.Structs.MenuData menudata = processContext.Read<MapAssist.Structs.MenuData>(_MenuDataOffset[pid]);
+        
         AnsiConsole.MarkupLine(
             $"Found offset {nameof(_MenuDataOffset)} 0x{_MenuDataOffset[pid].ToInt64() - processContext.BaseAddr.ToInt64():X}");
     }
@@ -493,3 +498,141 @@ void GetUnitHashTable(int pid1)
             }
         });
 }
+
+void GetMenuData(int pid)
+{
+    AnsiConsole.Prompt(new ConfirmationPrompt("Do you have 1 - your map showing 2 - skill tree opened?"));
+    
+    var previousltFoundIntPtr = IntPtr.Zero;
+    if (AnsiConsole.Prompt(new ConfirmationPrompt("Do you have a previous int pointer offset?")))
+    {
+        previousltFoundIntPtr = IntPtr.Parse(AnsiConsole.Ask<string>("Enter the offset: "));
+    }
+
+    AnsiConsole.Status()
+        .Spinner(Spinner.Known.Star)
+        .SpinnerStyle(Style.Parse("green bold"))
+        .Start("Finding Menu Data Offset...", ctx =>
+        {
+            using (var processContext = new ProcessContext(Process.GetProcessById(pid)))
+            {
+                var buffer = processContext.Read<byte>(processContext.BaseAddr, processContext.ModuleSize);
+                var gameNamePointer = IntPtr.Zero;
+                var cancellationTokenSource = new CancellationTokenSource();
+                var shownId = 0;
+                var bufferPosition = 0;
+                // try
+                // {
+                    // "1110010010000xxxxxxxxx0000x00"
+                    var pattern = new Pattern("10 00 10 00 1");
+                    IntPtr[] patternAddresses = FindAllPatternMatches(processContext.BaseAddr, buffer, pattern);
+                    // var offsetBuffer = new byte[4];
+                    // var resultRelativeAddress = IntPtr.Add(patternAddress, 3);
+                    
+                    // AnsiConsole.MarkupLine($"Found Game Name Offset: [bold yellow]{patternAddress}[/]");
+                    
+                    
+                    AnsiConsole.MarkupLine("Please close your skill tree tab");
+                    Thread.Sleep(1000);
+                    AnsiConsole.MarkupLine("    3");
+                    Thread.Sleep(1000);
+                    AnsiConsole.MarkupLine("    2");
+                    Thread.Sleep(1000);
+                    AnsiConsole.MarkupLine("    1");
+                    Thread.Sleep(1000);
+                    
+                    var pattern2 = new Pattern("10 00 00 00 1");
+                    buffer = processContext.Read<byte>(processContext.BaseAddr, processContext.ModuleSize);
+                    IntPtr[] patternAddresses2 = FindAllPatternMatches(processContext.BaseAddr, buffer, pattern2);
+
+                    // AnsiConsole.MarkupLine($"Found Game Name Offset: [bold yellow]{patternAddress2}[/]");
+                    var intersection = patternAddresses.ToList().Intersect(patternAddresses2.ToList());
+                    if (intersection.Any())
+                    {
+                        AnsiConsole.MarkupLine("We found the same address, this is good!");
+                        // List of intersections
+                        AnsiConsole.MarkupLine($"Found Game Name Offset: [bold yellow]{intersection.First()}[/]");
+                        if(intersection.Count() > 1)
+                        {
+                            AnsiConsole.MarkupLine("We found more than one address, this is bad!");
+                        }
+                    }
+                    
+                //     var startingOffset = (previousltFoundIntPtr == IntPtr.Zero
+                //         ? 0
+                //         : (int)((previousltFoundIntPtr.ToInt64() - processContext.BaseAddr.ToInt64())));
+                //     Parallel.For(startingOffset, buffer.Length,
+                //         new ParallelOptions
+                //         {
+                //             MaxDegreeOfParallelism = 100, CancellationToken = cancellationTokenSource.Token
+                //         },
+                //         i =>
+                //         {
+                //             if (i > shownId)
+                //             {
+                //                 shownId = i;
+                //                 ctx.Status(
+                //                     $"Finding Game Name Offset... {i}/{buffer.Length} --> {Math.Floor((i / (double)buffer.Length * 100))}%");
+                //             }
+                //
+                //             var currentPointer = IntPtr.Add(processContext.BaseAddr, i);
+                //             try
+                //             {
+                //                 var sess = processContext.Read<MapAssist.Structs.Session>(currentPointer);
+                //                 if (Encoding.UTF8.GetString(sess.GameName)
+                //                     .Equals(gameName, StringComparison.InvariantCultureIgnoreCase))
+                //                 {
+                //                     gameNamePointer = currentPointer;
+                //                     bufferPosition = i;
+                //                     cancellationTokenSource.Cancel();
+                //                 }
+                //             }
+                //             catch (Exception ex)
+                //             {
+                //                 AnsiConsole.MarkupLine($"[bold red]Error[/] - {ex.Message}");
+                //             }
+                //         });
+                // }
+                // catch (OperationCanceledException ex)
+                // {
+                //     AnsiConsole.MarkupLine($"Found Game Name Offset: [bold yellow]{gameNamePointer}[/]");
+                // }
+
+                // AnsiConsole.MarkupLine($"Found buffer position: [bold yellow]{bufferPosition}[/]");
+                // AnsiConsole.MarkupLine($"Printing buffer area 300 before and 300 into found struct:");
+                // var newBytes = new byte[300];
+                // Buffer.BlockCopy(buffer, bufferPosition - 300, newBytes, 0, 300);
+                // AnsiConsole.MarkupLine("Before:");
+                // AnsiConsole.MarkupLine(BitConverter.ToString(newBytes));
+                // Buffer.BlockCopy(buffer, bufferPosition, newBytes, 0, 300);
+                // AnsiConsole.MarkupLine("After:");
+                // AnsiConsole.MarkupLine(BitConverter.ToString(newBytes));
+            }
+        });
+    
+    IntPtr FindPattern(IntPtr baseAddr, byte[] buffer, Pattern pattern)
+    {
+        for (var i = 0; i < buffer.Length; i++)
+        {
+            if (pattern.Match(buffer, i))
+            {
+                return IntPtr.Add(baseAddr, i);
+            }
+        }
+        return IntPtr.Zero;
+    }
+    
+    IntPtr[] FindAllPatternMatches(IntPtr baseAddr, byte[] buffer, Pattern pattern)
+    {
+        List<IntPtr> matches = new();
+        for (var i = 0; i < buffer.Length; i++)
+        {
+            if (pattern.Match(buffer, i))
+            {
+                matches.Add(IntPtr.Add(baseAddr, i));
+            }
+        }
+        return matches.ToArray();
+    }
+}
+
